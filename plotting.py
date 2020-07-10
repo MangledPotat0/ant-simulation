@@ -3,7 +3,7 @@
 #   Ant trajectory plotter for python3                                        #
 #   Code written by Dawith Lim                                                #
 #                                                                             #
-#   Version: 1.3.1.0.3.1                                                      #
+#   Version: 1.4.2.0.3.1                                                      #
 #   First written on 2019/11/14                                               #
 #   Last modified: 2020/07/01                                                 #
 #                                                                             #
@@ -33,7 +33,7 @@ import trackpy as tp
 class AntProcessor:
     def __init__(self, argparser):
         self.jump = 1
-        self.roll = 1
+        self.roll = 3
         self.plotres = 50
         args = vars(argparser.parse_args())
         self.timebins = args["timebins"]
@@ -49,7 +49,7 @@ class AntProcessor:
             os.mkdir(self.figpath)
             print('Target directory not found; creating new directory.')
         except OSError:
-            print('Directory already exists.')
+            print('Directory {} already exists.'.format(self.figpath))
         print('File ready')
         print('Process initialized.')
 
@@ -136,7 +136,6 @@ class AntProcessor:
         plt.close()
 
     def plot_distances(self, distances,n):
-        print(np.shape(distances))
         avgs = np.nanmean(distances, axis=1)
         plt.figure()
         plt.plot(avgs)
@@ -175,29 +174,25 @@ class AntProcessor:
             self.filename,self.timebins,n))
         plt.close()
 
-    def plot_speed_hist(self, speed,n):
+    def plot_speed(self, speed):
+        speed = np.delete(speed,0) 
+        time = np.arange(0,len(speed),1)
+        print(time.shape)
         plt.figure()
-        if self.collected:
-            for lists in speed:
-                thing = [item for sublist in lists for item in sublist]
-                thing = np.array(thing) 
-                thing = thing[thing<=3]
-                plt.hist(thing,bins=np.linspace(min(thing),max(thing),self.plotres),
-                        label='Single ant speed', alpha = 0.3)
-            plt.savefig('{}{}_speed_{}.png'.format(self.figpath,
-                self.filename,self.timebins))
-                
-        else:
-            speed = [item for sublist in speed for item in sublist]
-            speed = np.array(speed) 
-            speed = speed[speed<=3]
-            plt.figure()
-            plt.hist(speed,bins=np.linspace(min(speed),max(speed),self.plotres),
-                    label='Single ant speed')
-            plt.savefig('{}{}_speed_{}-{}.png'.format(self.figpath,
-                self.filename,self.timebins,n))
+        plt.plot(time,speed)
+        plt.xlabel('Time (frames)')
+        plt.ylabel('Speed (m/s)')
+        plt.savefig('{}{}_speed.png'.format(self.figpath,self.filename))
+
+    def plot_speed_hist(self, speed,n):
+        speed = speed[speed<4]
+        plt.figure()
+        plt.hist(speed,bins=np.linspace(min(speed),max(speed),self.plotres),
+                label='Single ant speed')
         plt.xlabel('Speed (cm/s)')
         plt.ylabel('frequency (frames)')
+        plt.savefig('{}{}_speed_hist_{}-{}.png'.format(self.figpath,
+                self.filename,self.timebins,n))
         plt.close()
 
         return
@@ -205,22 +200,27 @@ class AntProcessor:
     def plot_trajectory(self, position,n):
         plt.figure(figsize=(5.5,5.5))
         
-        if self.collected:
-            for traj in position:
-                for segment in traj:
-                    pos = np.array(segment)
-                    plt.plot(pos[0],pos[1])
-            plt.savefig('{}{}_trajectory_{}.png'.format(self.figpath,
-                        self.filename,self.timebins))
-        else:
-            for traj in position:
-                pos = np.array(traj)
-                plt.plot(pos[0],pos[1])
-            plt.savefig('{}{}_trajectory_{}-{}.png'.format(self.figpath,
-                            self.filename,self.timebins,n))
+        plt.plot(position[0],position[1])
+        plt.savefig('{}{}_trajectory_{}-{}.png'.format(self.figpath,
+                    self.filename,self.timebins,n))
         plt.xlabel('x (cm)')
         plt.ylabel('y (cm)')
         plt.close()
+
+    class Trajectory:
+        def __init__(self, antproc, data):
+            length = len(data)
+            shape = np.array([length,2])
+            self.position = antproc.get_position(data)
+            self.displacement = antproc.get_displacement(self.position)
+            [self.velocity, self.speed] = antproc.get_velocity(self.position)
+            self.orientation = antproc.get_orientation(self.velocity)
+            self.angularvelocity = antproc.get_angularvelocity(self.orientation)
+    
+        def make_indices(self, data, criteria):
+            truthfunction = ((data[:,0] > minthresh) & (data[:,0] > maxthresh)
+                            (data[:,1] > minthresh) & (data[:,1] > maxthresh))
+            self.indices = np.broadcast_to(truthfunction[:,None], data.shape())
 
 def distance(pair):
     x,y = pair
@@ -253,50 +253,21 @@ def main():
                 'Number of time bins', type=int)
     ap = AntProcessor(argparser)
     
-    x = []
-    v = []
-    o = []
-    w = []
-    d = []
+    trajectories = np.array([])
     
-    ap.collected = False;
     for t in range(ap.timebins):
-        
-        position_pool = []
-        speed_pool = []
-        orientation_pool = []
-        angular_velocity_pool = []
-        displacement_pool = []
-
         for setname in ap.datafile:
             dataset = ap.datafile[setname]
-            setlength = math.floor(len(dataset)/ap.timebins)
-            dataset = dataset[t*setlength:(t+1)*setlength-1]
-            position = ap.get_position(dataset)
-            displacement = ap.get_displacement(position)
-            velocity, speed = ap.get_velocity(position)
-            orientation = ap.get_orientation(velocity)
-            angularvelocity = ap.get_angularvelocity(orientation)
-            position_pool.append(position)
-            if len(displacement_pool) != 0:
-                for n in range(len(displacement_pool)):
-                    displacement_pool[n].append(displacement[n])
-                    print(displacement_pool)
-            speed_pool.append(speed)
-            orientation_pool.append(orientation)
-            angular_velocity_pool.append(angularvelocity)
-        x.append(position_pool)
-        v.append(speed_pool)
-        ap.plot_trajectory(position_pool,t)
-        ap.plot_distances(displacement,t)
-        ap.plot_position_hist(position_pool,t)
-        ap.plot_speed_hist(speed_pool,t)
-        ap.plot_orientation_hist(orientation_pool,t)
-        ap.plot_angularvelocity_hist(angular_velocity_pool,t)
-    ap.collected = True
-    ap.plot_trajectory(x,t)
-    ap.plot_speed_hist(v,1)
+            trajectories = np.append(trajectories, ap.Trajectory(ap, 
+                dataset[1:]))
+            ap.collected = False
+            ap.plot_trajectory(trajectories[-1].position,1)
+            ap.plot_speed(trajectories[-1].speed)
+            ap.plot_speed_hist(trajectories[-1].speed,1)
     print('Process exited normally.')
 
 if __name__ == '__main__':
     main()
+
+# Put in as subclass to antprocessor
+

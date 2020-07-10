@@ -52,7 +52,7 @@ class AntTracker:
         self.outpath = '../data/trajectories/{}'.format(exp)
         self.datafile = '{}data.hdf5'.format(exp)
 
-        self.vid = cv.VideoCapture('{}{}'.format(vidpath,vfn))
+        self.vid = cv.VideoCapture('{}{}'.format(self.vidpath,vfn))
         self.check_video_capture()
 
         self.create_output_dir()
@@ -123,11 +123,11 @@ def main():
     args = vars(ap.parse_args())
     vfn = args['file'] + '.mp4'
    
-    datafile = h5py.File('{}{}data.hdf5'.format(outpath,args['file']), 'w')
+    at = AntTracker(args['file'], vfn)
+    datafile = h5py.File('{}{}data.hdf5'.format(at.outpath,args['file']), 'w')
 
     print('Initialized.')
 
-    at = AntTracker(args['file'], vfn)
     print('Running ant tracker')
     at.run(datafile)
     print('Linking ant trajectorees')
