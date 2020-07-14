@@ -3,7 +3,7 @@
 #   Density distribution plot code                                             #
 #   Code written by Dawith Lim                                                 #
 #                                                                              #
-#   Version 1.1.0.1.2.0                                                        #
+#   Version 1.1.2.1.2.0                                                        #
 #   First written on 2020/06/24                                                #
 #   Last modified: 2020/06/24                                                  #
 #                                                                              #
@@ -37,7 +37,7 @@ class Processor():
     def __init__(self,args):
         self.fileid = args['file']
         self.binsize = args['binsize']
-        
+        self.antcount = args['antcount']
         codepath = os.path.dirname(os.path.realpath(__file__))
         os.chdir(codepath)
         self.filepath = '../data/videos/'
@@ -65,13 +65,18 @@ class Processor():
         ret, self.frame = cv.threshold(self.frame,245,255,cv.THRESH_BINARY)
 
     def run(self):
+        sumval = np.sum(self.frame)
+        self.frame = (self.antcount/sumval) * self.frame
         imstack = np.array([proc_frame(self.binsize,self.frame)])
+        success, frame = self.video.read()
         success, frame = self.video.read()
         success = True
         while success:
             self.frame = cv.cvtColor(frame,cv.COLOR_BGRA2GRAY)
             self.frame = self.backsub.apply(self.frame, learningRate=0)
             ret, self.frame = cv.threshold(self.frame,245,255,cv.THRESH_BINARY)
+            sumval = np.sum(self.frame)
+            self.frame = (self.antcount/sumval) * self.frame
             imstack=np.vstack((imstack,[proc_frame(self.binsize,self.frame)]))
             success, frame = self.video.read()
 
@@ -89,14 +94,17 @@ class Processor():
         plotstack = []
         ct=0
         try:
-            os.makedirs('{}{}'.format(self.fileid,self.binsize))
+            os.makedirs('../data/density/{}{}'.format(self.fileid,self.binsize))
         except:
             print('Directory already exists.\n')
+        maxval = np.max(imstack)
         for frame in imstack:
             plt.figure(figsize=(5.5,5.5))
-            plt.imshow(frame, cmap='Blues',interpolation='nearest')
-            plt.savefig('{}{}/{}{}{}.png'.format(self.fileid,self.binsize,
-                self.fileid,self.binsize,ct))
+            plt.imshow(frame, cmap='Blues',interpolation='nearest',vmin=0,
+                    vmax=maxval)
+            plt.colorbar()
+            plt.savefig('../data/density/{}{}/{}{}{}.png'.format(
+                        self.fileid,self.binsize,self.fileid,self.binsize,ct))
             plt.close()
             ct += 1
 
@@ -124,6 +132,8 @@ def main():
     ap.add_argument('-f', '--file', required=True, help=
             'mpeg-4 video file name, without the file extension')
     ap.add_argument('-b', '--binsize', required=True, type=int, help='Bin size')
+    ap.add_argument('-n', '--antcount', required=True, type=int,
+                    help='Number of ants in video')
     args = vars(ap.parse_args())
     
     proc = Processor(args)
