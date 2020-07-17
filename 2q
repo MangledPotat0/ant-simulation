@@ -27,7 +27,6 @@ import inspect
 import math
 import matplotlib as mpl
 import matplotlib.pyplot as plt
-import matplotlib.ticker as tck
 import numpy as np
 import os
 import trackpy as tp
@@ -35,14 +34,12 @@ import trackpy as tp
 class AntProcessor:
     def __init__(self, argparser):
         self.jump = 1
-        self.roll = 15
+        self.roll = 4
         self.plotres = 50
-        self.boundary = False
-        self.boundmin = 0
-        self.boundmax = 18
-        self.size = 18
-        self.fps = 15
-        self.density = True
+        self.boundary = True
+        self.boundmin = 1
+        self.boundmax = 16.5
+        self.factor = 0.03
         args = vars(argparser.parse_args())
         self.timebins = args['timebins']
         self.runtype = args['runtype']
@@ -77,28 +74,17 @@ class AntProcessor:
 
     def get_displacement(self, position):
 
-        trajectory = position
+        trajectory = np.transpose(position)
         length = len(trajectory)
-        maxrange = 1000
-        displacement = np.empty((length,maxrange))
+        displacement = np.empty((length,length))
         displacement.fill(np.nan)
         for n in range(length):
-            terminate = 0
             for m in range(length - n):
-                if terminate < maxrange:
+                try:
                     displacement[n,m] = distance(trajectory[m+n]-trajectory[m])
-                    terminate += 1
-
+                except:
+                    meh = 1
         return displacement
-
-    def get_distance_to_boundary(self, position):
-        dtb = np.empty(0)
-        for coords in position:
-            distance = math.sqrt((coords[0]-self.size/2)**2 + 
-                    (coords[1]-self.size/2)**2)
-            dtb = np.append(dtb,distance)
-        
-        return dtb
 
     def get_orientation(self, velocity):
         orientation = np.empty(0)
@@ -116,48 +102,43 @@ class AntProcessor:
     def get_position(self, dataset):
         pos = dataset[::self.jump,0:2]
         pos[pos==0] = np.nan
+        rat = self.factor 
 
         x = rolling_average(pos[:,0],self.roll)
         y = rolling_average(pos[:,1],self.roll)
         zeros = np.where(x==0)
         x = np.delete(x,zeros)
         y = np.delete(y,zeros)
-        position = np.array([(x-min(x))*self.size/(max(x)-min(x)),
-            (y-min(y))*self.size/(max(y)-min(y))])
+        position = np.array([(x-min(x))*rat,(y-min(y))*rat])
         return np.transpose(position)
 
     def get_velocity(self, position):
     
-        velocity = np.empty((0,2))
-        speed = np.empty(0)
+        velocity = [[0,0]]
+        speed = []
         prev = [0,0]
         for positions in position:
-            velocity = np.vstack((velocity, np.array([[positions[0] - prev[0],
-                positions[1] - prev[1]]])))
+            velocity.append([positions[0] - prev[0],positions[1] - prev[1]])
             prev = positions
-        velocity = velocity * self.fps
+        velocity.pop(0)
         for vel in velocity:
-            speed = np.append(speed, np.sqrt(vel[0]**2 + vel[1]**2))
-        velocity = np.delete(velocity, 0,axis=0)
-        speed = np.delete(speed, 0)
+            speed.append(np.sqrt(vel[0]**2 + vel[1]**2))
+        speed = np.array(speed)
+        velocity = np.array(velocity)
         return velocity, speed
 
     def plot_angularvelocity_hist(self, angularvelocity, n):
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.hist(angularvelocity,bins=np.linspace(-0.25*np.pi,
-            0.25*np.pi,self.plotres), 
-            label='Single ant speed',density=self.density)
-        #ax.xaxis.set_major_formatter(tck.FormatStrFormatter('%g $\pi/12$'))
-        #ax.xaxis.set_major_locator(tck.MultipleLocator(base=1/3))
-        ax.set_xlabel('anglular velocity (rad/s)')
-        ax.set_ylabel('frequency')
+        plt.figure()
+        plt.hist(angularvelocity,bins=np.linspace(-1,1,self.plotres), label=
+                'Single ant speed')
+        plt.xlabel('angular velocity (rad/s)')
+        plt.ylabel('frequency')
         plt.savefig('{}{}_angularvelocity_{}-{}.png'.format(self.figpath,
             self.filename,self.timebins,n))
         plt.close()
 
-    def plot_displacement(self, displacement,n):
-        avgs = np.nanmean(displacement, axis=1)
+    def plot_distances(self, distances,n):
+        avgs = np.nanmean(distances, axis=1)
         plt.figure()
         plt.plot(avgs)
         plt.xlabel('t (s)')
@@ -167,11 +148,11 @@ class AntProcessor:
         plt.close()
 
     def plot_orientation_hist(self, orientation, n):
-        fig = plt.figure()
-        ax = fig.add_subplot(111,projection='polar')
-        ax.hist(orientation,bins=np.linspace(-math.pi,math.pi,self.plotres),
-                label='Single ant speed',density=self.density)
-        ax.set_ylabel('frequency')
+        plt.figure()
+        plt.hist(orientation,bins=np.linspace(-math.pi,math.pi,self.plotres),
+                label='Single ant speed')
+        plt.xlabel('Orientation (radians)')
+        plt.ylabel('frequency')
         plt.savefig('{}{}_orientation_{}-{}.png'.format(self.figpath,
             self.filename,self.timebins,n))
         plt.close()
@@ -203,7 +184,7 @@ class AntProcessor:
         speed = speed[speed<4]
         plt.figure()
         plt.hist(speed,bins=np.linspace(min(speed),max(speed),self.plotres),
-                label='Single ant speed',density=self.density)
+                label='Single ant speed')
         plt.xlabel('Speed (cm/s)')
         plt.ylabel('frequency (frames)')
         plt.savefig('{}{}_speed_hist_{}-{}.png'.format(self.figpath,
@@ -222,44 +203,15 @@ class AntProcessor:
         plt.ylabel('y (cm)')
         plt.close()
 
-    def plot_orient_vs_dist_from_center(self, data1, data2, n):
-        fig = plt.figure()
-        ax = fig.add_subplot(111,polar=True)
-        ax.scatter(data1,data2, alpha=0.005)
-        x = np.linspace(0,2*np.pi,360)
-        y = np.full((360),9)
-        ax.plot(x,y, 'r')
-        #plt.scatter(data1,data2,alpha=0.05)
-        ax.set_ylabel('Distance from center (cm)')
-        #plt.xlabel('distance from center(cm)')
-        plt.savefig('{}{}_radialdistance{}{}.png'.format(self.figpath,
-                    self.filename,self.timebins,n))
-        plt.close()
-
-    def plot_dfc_vs_speed(self,dfc,speed,n):
-        fig = plt.figure()
-        ax = fig.add_subplot(111)
-        ax.scatter(dfc,speed, alpha=0.002)
-        ax.set_ylabel('Speed (cm/s)')
-        ax.set_xlabel('Distance from center(cm)')
-        plt.savefig('{}{}_dfcvsspeed{}{}.png'.format(self.figpath,
-                    self.filename,self.timebins,n))
-        plt.close()
-    
     class Trajectory:
         def __init__(self, antproc, data):
             length = len(data)
             shape = np.array([length,2])
             self.position = antproc.get_position(data)
-#            self.displacement = antproc.get_displacement(self.position)
+            self.displacement = antproc.get_displacement(self.position)
             [self.velocity, self.speed] = antproc.get_velocity(self.position)
             self.orientation = antproc.get_orientation(self.velocity)
             self.angularvelocity = antproc.get_angularvelocity(self.orientation)
-            self.disttoboundary = antproc.get_distance_to_boundary(self.position)[2:]
-            self.position = self.position[2:]
-            self.velocity = self.velocity[1:]
-            self.speed = self.speed[1:]
-            self.orientation = self.orientation[1:]
     
         def make_indices(self, data, criteria):
             minthresh,maxthresh = criteria
@@ -318,22 +270,21 @@ def main():
                 indices = np.empty((len(trajectories[-1].position)),dtype=bool)
                 indices.fill(False)
                 if ap.boundary:
-                    trajectories[-1].indices = ~trajectories[-1].indices
+                    trajectories[-1].indices = not trajectories[-1].indices
                 indices[start:end] = trajectories[-1].indices[start:end]
+                print(indices)
                 ap.plot_trajectory(trajectories[-1].position[indices],t+1)
                 ap.plot_position_hist(trajectories[-1].position[indices],t+1)
-                ap.plot_speed(trajectories[-1].speed[indices[1:]],t+1)
-                ap.plot_speed_hist(trajectories[-1].speed[indices[1:]],t+1)
+                ap.plot_speed(trajectories[-1].speed[indices],t+1)
+                ap.plot_speed_hist(trajectories[-1].speed[indices],t+1)
                 ap.plot_orientation_hist(trajectories[-1].orientation[indices[
-                                1:]],t+1)
+                                :]],t+1)
                 ap.plot_angularvelocity_hist(trajectories[-1].angularvelocity
-                            [indices[2:]],t+1)
-    
+                            [indices[1:]],t+1)
     if ap.runtype =='p':
         pool = copy.deepcopy(trajectories[-1])
         for t in range(ap.timebins):
             pool.position = np.empty((0,2))
-            pool.disttoboundary = np.empty(0)
             pool.speed = np.array([])
             pool.orientation = np.array([])
             pool.angularvelocity = np.array([])
@@ -349,28 +300,23 @@ def main():
                     trajectories[-1].indices = ~trajectories[-1].indices[:]
                 indices[start:end] = traj.indices[start:end]
                 pool.position = np.vstack((pool.position, 
-                    traj.position[indices]))
-                pool.disttoboundary = np.append(pool.disttoboundary, 
-                        traj.disttoboundary[indices])
+                        traj.position[indices]))
                 pool.speed = np.append(pool.speed, 
-                        traj.speed[indices],axis=0)
+                            traj.speed[indices],axis=0)
                 pool.orientation = np.append(pool.orientation, 
-                        traj.orientation[indices],axis=0)
+                            traj.orientation[indices],axis=0)
                 pool.angularvelocity = np.append(pool.angularvelocity, 
-                        traj.angularvelocity[indices],axis=0)
+                        traj.angularvelocity[indices[1:]],axis=0)
 
-            ap.plot_position_hist(pool.position,t+1)
-            ap.plot_speed_hist(pool.speed,t+1)
-            ap.plot_orientation_hist(pool.orientation,t+1)
-            ap.plot_angularvelocity_hist(pool.angularvelocity,t+1)
-            ap.plot_orient_vs_dist_from_center(pool.orientation,
-                    pool.disttoboundary,t+1)
-            ap.plot_dfc_vs_speed(pool.disttoboundary,pool.speed,t+1)
-#        pool.displacement = np.empty((2,18014))
-#        for traj in trajectories:
-#            pool.displacement = np.append(pool.displacement,traj.displacement,axis=1)
-#        ap.plot_displacement(pool.displacement,0)
+            ap.plot_position_hist(pool.position,t)
+            ap.plot_speed_hist(pool.speed,t)
+            ap.plot_orientation_hist(pool.orientation,t)
+            ap.plot_angularvelocity_hist(pool.angularvelocity,t)
                     
+                    
+        #pooled data plots
+
+    
 
     print('Process exited normally.')
 
