@@ -24,12 +24,12 @@ import sys
 import time
 
 ap = app.ArgumentParser()
-ap.add_argument('-files', help='Files', nargs='+')
+ap.add_argument('-f', '--files', help='Files', nargs='+')
 args = ap.parse_args()
 
 codepath = os.path.dirname(os.path.realpath(__file__))
 os.chdir(codepath)
-filepath = "../data/trajectories/single/"
+filepath = "../data/trajectories/"
 
 timestamp = time.strftime('%Y%m%d%H')
 
