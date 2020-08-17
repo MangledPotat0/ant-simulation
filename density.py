@@ -104,7 +104,8 @@ class Processor():
                     vmax=maxval)
             plt.colorbar()
             plt.savefig('../data/density/{}{}/{}{}{}.png'.format(
-                        self.fileid,self.binsize,self.fileid,self.binsize,ct))
+                        self.fileid,self.binsize,self.fileid,self.binsize,ct),
+                        bbox_inches='tight')
             plt.close()
             ct += 1
 

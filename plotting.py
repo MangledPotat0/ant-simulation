@@ -3,12 +3,14 @@
 #   Ant trajectory plotter for python3                                        #
 #   Code written by Dawith Lim                                                #
 #                                                                             #
-#   Version: 1.5.12.0.4.4                                                     #
+#   Version: 1.6.12.0.4.4                                                     #
 #   First written on 2019/11/14                                               #
 #   Last modified: 2020/07/01                                                 #
 #                                                                             #
 #   Packages used                                                             #
 #   -   argsparse: Argument parser to handle input parameters                 #
+#   -   distributions: Local module in the codebase that contains all the     #
+#           distribution functions used in the code.                          #
 #   -   inspect: To check if the file exists.                                 #
 #   -   math: Needed for the floor function in position binning.              #
 #   -   matplotlib: pyplot is used to generate all the plots.                 #
@@ -22,6 +24,7 @@
 
 import argparse
 import copy
+from distributions import * # (LOCAL)
 import h5py
 import inspect
 import math
@@ -38,16 +41,17 @@ import trackpy as tp
 class AntProcessor:
     def __init__(self, argparser):
         self.jump = 1
-        self.roll = 20
-        self.plotres = 60
-        self.boundary = True #False
-        self.boundmin = 1.5
-        self.boundmax = 16.5
+        self.plotres = 40
+        self.boundary = False
+        self.boundmin = 0
+        self.boundmax = 18
         self.size = 18
         self.fps = 10
+        self.roll = 2*self.fps
         self.density = True
         self.trajs = 0
         self.meancovars = []
+        self.blyat = np.empty(0, dtype=np.int)
         args = vars(argparser.parse_args())
         self.timebins = args['timebins']
         self.runtype = args['runtype']
@@ -76,8 +80,8 @@ class AntProcessor:
         acceleration = np.delete(acceleration,0)
         return acceleration*self.fps
 
-    def get_angularvelocity(self,orientation):
-    
+    def get_angularvelocity(self,traj):
+        orientation = traj.orientation
         angularvelocity = np.empty(0)
         old = 0
 
@@ -85,8 +89,7 @@ class AntProcessor:
             angularvelocity = np.append(angularvelocity,th - old)
             old = th
 
-        angularvelocity = np.array(angularvelocity[1:])
-
+        angularvelocity = np.array(angularvelocity[1:])*self.fps
         return angularvelocity
 
     def get_displacement(self, position):
@@ -168,7 +171,7 @@ class AntProcessor:
         ax.plot(plotbins,gaussian1D(plotbins,*popt),label='Gaussian fit')
         popt, _ = fit(lorentz1D, bincenters, binheight, [1.,0.,1.])
         ax.plot(plotbins,lorentz1D(plotbins,*popt),label='Lorentz fit')
-        popt, _ = fit(laplace1D, bincenters, binheight, [0.,1.,1.])
+        popt, _ = fit(laplace1D, bincenters, binheight, [0.,1.])
         ax.plot(plotbins,laplace1D(plotbins,*popt),label='Laplace fit')
         popt, _ = fit(logistic1D, bincenters, binheight, [0.,1.])
         ax.plot(plotbins,logistic1D(plotbins,*popt),label='Logistic fit')
@@ -184,25 +187,41 @@ class AntProcessor:
     def plot_angularvelocity_hist(self, angularvelocity, n):
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        histbins = np.linspace(-0.25*np.pi, 0.25*np.pi,self.plotres)
-        plotbins = np.linspace(-0.25*np.pi, 0.25*np.pi,10000)
+        width = 2
+        histbins = np.linspace(-width*np.pi, width*np.pi,self.plotres)
+        plotbins = np.linspace(-width*np.pi, width*np.pi,10000)
         binheight, binborders, _ = ax.hist(angularvelocity, bins= histbins,
                 label='Data', density=self.density)
         bincenters = binborders[:-1] + np.diff(binborders)/2
-        popt, cov = fit(lorentz1D, bincenters, binheight, p0=[1.,0.,1.])
-        #popt, cov = fit(laplace1D, bincenters, binheight, p0=[0.,1.,0.8])
-        #popt, cov = fit(logistic1D, bincenters, binheight, p0=[0.,1.])
-        #popt, cov = fit(vonMises1D, bincenters, binheight, p0=[0.,5.])
-        #popt, cov = fit(gaussian1D, bincenters, binheight, [1.,0.,1.])
-        ax.plot(plotbins, lorentz1D(plotbins,*popt), label='Lorentz fit')
-        #ax.plot(plotbins, laplace1D(plotbins,*popt), label='Laplace fit')
-        #ax.plot(plotbins, logistic1D(plotbins,*popt), label='Logistic fit')
-        #ax.plot(plotbins, vonMises1D(plotbins,*popt), label=fitlabel)
-        #ax.plot(plotbins, gaussian1D(plotbins,*popt), label=fitlabel)
-        self.meancovars.append(np.mean(cov))
 
-        #ax.xaxis.set_major_formatter(tck.FormatStrFormatter('%g $\pi/12$'))
-        #ax.xaxis.set_major_locator(tck.MultipleLocator(base=1/3))
+#       Logistic fitting
+
+        popt, cov = fit(logistic1D, bincenters, binheight, p0=[0.,1.])
+        ax.plot(plotbins, logistic1D(plotbins,*popt), label='Logistic fit')
+        self.paramnames = ['Mean', 'Amplitude']
+
+#       Lorentz fitting
+
+        #popt, cov = fit(lorentz1D, bincenters, binheight, p0=[1.,0.,1.])
+        #ax.plot(plotbins, lorentz1D(plotbins,*popt), label='Lorentz fit')
+        #self.paramnames = ['Mean', 'Amplitude', 'Gamma']
+
+#       Gaussian fitting
+
+        #popt, cov = fit(gaussian1D, bincenters, binheight, [1.,0.,1.])
+        #ax.plot(plotbins, gaussian1D(plotbins,*popt), label='Gaussian fit')
+        #self.paramnames = ['Mean', 'standard deviation']
+
+#       Laplace fitting
+#       popt, cov = fit(laplace1D, bincenters, binheight, p0=[0.,0.4])
+#        ax.plot(plotbins, laplace1D(plotbins,*popt), label='Laplace fit')
+#        self.paramnames = ['Mean', 'Scale']
+
+#       von Mises fitting
+
+        #popt, cov = fit(vonMises1D, bincenters, binheight, p0=[0.,5.])
+        #ax.plot(plotbins, vonMises1D(plotbins,*popt), label=fitlabel)
+        #self.paramvals = popt
         ax.set_xlabel('anglular velocity (rad/s)')
         ax.set_ylabel('frequency')
         ax.legend()
@@ -212,23 +231,37 @@ class AntProcessor:
 
     def plot_dfc_hist(self, dfc, n):
         fig = plt.figure()
-        ax = fig.add_subplot(111)
-        binheight, histbins, _ = ax.hist(dfc, self.plotres, 
+        ax = fig.subplots(3,1)
+        binheight, histbins, _ = ax[0].hist(dfc, self.plotres, 
+                density=self.density,label='Data')
+        binheight, histbins, _ = ax[1].hist(dfc, self.plotres, 
+                density=self.density,label='Data')
+        binheight, histbins, _ = ax[2].hist(dfc, self.plotres, 
                 density=self.density,label='Data')
         bincenters = histbins[:-1] + np.diff(histbins)/2
-        plotbins = np.linspace(0,max(dfc),10000)
+        plotbins = np.linspace(min(dfc),max(dfc),10000)
         popt, cov = fit(composite_lorentz_polyo2, bincenters, binheight,
                 p0=[.1,0.,0.,9.,1.,1.])
-        ax.plot(plotbins,composite_lorentz_polyo2(plotbins,*popt), 
+        ax[0].plot(plotbins,composite_lorentz_polyo2(plotbins,*popt), 
                 label='Lorentz + 2nd order poly fit')
-        ax.set_xlabel('distance from center (cm)')
-        ax.set_ylabel('frequency')
-        ax.set_ylim([0,None])
-        ax.legend()
+        ax[0].set_xlabel('distance from center (cm)')
+        ax[0].set_ylabel('frequency')
+        ax[0].legend()
+        ax[1].plot(plotbins,composite_lorentz_polyo2(plotbins,*popt), 
+                label='Lorentz + 2nd order poly fit')
+        ax[1].set_xlabel('distance from center (cm)')
+        ax[1].set_ylabel('frequency')
+        ax[1].set_yscale('log')
+        #ax[1].set_xscale('log')
+        ax[2].plot(plotbins,composite_lorentz_polyo2(plotbins,*popt), 
+                label='Lorentz + 2nd order poly fit')
+        ax[2].set_xlabel('distance from center (cm)')
+        ax[2].set_ylabel('frequency')
+        ax[2].set_yscale('log')
+        ax[2].set_xscale('log')
         plt.savefig('{}{}_dfc_{}-{}.png'.format(self.figpath,
-            self.filename,self.timebins,n), bbox_inches='tight')
+            self.filename,self.timebins,n))
         plt.close()
-        self.meancovars.append(np.mean(cov))
 
     def plot_displacement(self, displacement,n):
         avgs = np.nanmean(displacement, axis=1)
@@ -258,7 +291,7 @@ class AntProcessor:
         ax = fig.add_subplot(111,aspect='equal')
         h = ax.hist2d(position[0],position[1],self.plotres,label=
                 'Single ant position', norm=LogNorm())
-        plt.colorbar(h[3])
+        #plt.colorbar(h[3])
         #plt.scatter(position[0],position[1],alpha=0.005*self.timebins)
         plt.xlabel('x (cm)')
         plt.ylabel('y (cm)')
@@ -279,17 +312,35 @@ class AntProcessor:
 
     def plot_speed_hist(self, speed,n):
         speed = speed[speed<5]
-        plt.figure()
-        plt.hist(speed,bins=np.linspace(min(speed),max(speed),self.plotres),
+        fig = plt.figure()
+        ax = fig.add_subplot()
+        ax.hist(speed,bins=np.linspace(min(speed),max(speed),self.plotres),
                 label='Single ant speed',density=self.density)
-        plt.xlabel('Speed (cm/s)')
-        plt.ylabel('frequency (frames)')
-        plt.savefig('{}{}_speed_hist_{}-{}.png'.format(self.figpath,
+        ax.set_xlabel('Speed (cm/s)')
+        ax.set_ylabel('frequency (frames)')
+        ax.set_xlim([0,5])
+        ax.set_ylim([0,1.2])
+        fig.savefig('{}{}_speed_hist_{}-{}.png'.format(self.figpath,
                 self.filename,self.timebins,n), bbox_inches='tight')
-        plt.close()
+        plt.close(fig)
 
         return
     
+    def plot_blyat(self, position,n):
+        blyat = self.blyat
+        blyat1 = np.arange(len(blyat))
+        blyat = blyat1[blyat]
+        print(blyat)
+        fig = plt.figure(figsize=(5.5,5.5))
+        ax = fig.subplots()
+        position = np.transpose(position)
+        ax.plot(position[0][blyat],position[1][blyat],'.',alpha=0.05)
+        ax.set_xlabel('x (cm)')
+        ax.set_ylabel('y (cm)')
+        fig.savefig('{}{}_trajectory_{}-{}.png'.format(self.figpath,
+                    self.filename,self.timebins,n), bbox_inches='tight')
+        plt.close()
+
     def plot_trajectory(self, position,n):
         plt.figure(figsize=(5.5,5.5))
         position = np.transpose(position)
@@ -304,8 +355,9 @@ class AntProcessor:
         velocity = np.transpose(velocity)
         fig = plt.figure()
         ax = fig.add_subplot(111)
-        ax.scatter(velocity[0], velocity[1])
+        ax.scatter(velocity[0], velocity[1],alpha=0.005)
         ax.scatter([0],[0], c='r')
+        ax.set_aspect(1)
         ax.set_xlabel('x (cm)')
         ax.set_ylabel('y (cm)')
         plt.savefig('{}{}_velocity_{}-{}.png'.format(self.figpath,
@@ -322,6 +374,8 @@ class AntProcessor:
         #plt.scatter(data1,data2,alpha=0.05)
         ax.set_ylabel('Distance from center (cm)')
         #plt.xlabel('distance from center(cm)')
+        ax1 = fig.add_subplot(211)
+        ax1.hist2d(data1, data2, 40)
         plt.savefig('{}{}_radialdistance{}{}.png'.format(self.figpath,
                     self.filename,self.timebins,n), bbox_inches='tight')
         plt.close()
@@ -346,7 +400,7 @@ class AntProcessor:
 #            self.displacement = antproc.get_displacement(self.position)
             [self.velocity, self.speed] = antproc.get_velocity(self.position)
             self.orientation = antproc.get_orientation(self.velocity)
-            self.angularvelocity = antproc.get_angularvelocity(self.orientation)
+            self.angularvelocity = antproc.get_angularvelocity(self)
             self.acceleration = antproc.get_acceleration(self.speed)
             self.dfc = antproc.get_distance_to_boundary(self.position)[2:]
             self.position = self.position[2:]
@@ -364,34 +418,6 @@ def distance(pair):
     x,y = pair
     output = math.sqrt(x**2 + y**2)
     return output 
-
-def gaussian1D(x, mean, amplitude, sigma):
-    return amplitude * np.exp(-((x-mean)/sigma)**2)
-
-def laplace1D(x, mu, b, s):
-    return s * np.exp(-np.abs(x-mu)/b)/(2*b)
-
-def laplaceasym1D(x, mu, b, k, s):
-    clone = x
-    clone[x<mu] = s * np.exp(b*(x[x<mu]-mu)/k)/(2*b)
-    clone[x>=mu] = s * np.exp(-b*k*(x[x>=mu]-mu)) 
-    print(clone)
-    return clone
-
-def logistic1D(x, mu, s):
-    return np.exp(-(x-mu)/s)/(s*(1+np.exp(-(x-mu)/s))**2)
-
-def lorentz1D(x, mean, amplitude, gamma):
-    return amplitude / (1 + ((x - mean) / gamma)**2)
-
-def polyo2(x, a1, a2, c):
-    return a1 * x**2 + a2 * x + c
-
-def vonMises1D(x, mu, k):
-    return np.exp(k*np.cos(x-mu))/(2*np.pi*modbessel(0,k))
-
-def composite_lorentz_polyo2(x, a1, a2, c, mu, b, gamma):
-    return polyo2(x,a1,a2,c) + lorentz1D(x,mu,b,gamma)
 
 def rolling_average(source, count):
     try:
@@ -487,22 +513,25 @@ def main():
                 pool.acceleration = np.append(pool.acceleration, 
                         traj.acceleration[indices],axis=0)
 
-            ap.plot_position_hist(pool.position,t+1)
+            #ap.plot_position_hist(pool.position,t+1)
             ap.plot_speed_hist(pool.speed,t+1)
             ap.plot_orientation_hist(pool.orientation,t+1)
             ap.plot_angularvelocity_hist(pool.angularvelocity,t+1)
             ap.plot_orient_vs_dist_from_center(pool.orientation,
                     pool.dfc,t+1)
             ap.plot_dfc_hist(pool.dfc,t+1)
-            boo = pool.position[pool.speed<0.2]
-            ap.plot_position_hist(boo,t+1000)
+            boo = pool.angularvelocity[(0.0<pool.speed) & (pool.speed<0.2)]
+            ap.plot_angularvelocity_hist(boo,t+1000)
             ap.plot_acceleration_hist(pool.acceleration,t+1)
             ap.plot_velocity(pool.velocity,t+1)
+            ap.blyat = (pool.speed<0.2) #& (
+            #        np.abs(pool.angularvelocity < 0.0175))
+            ap.plot_blyat(pool.position, 1000)
 #        pool.displacement = np.empty((2,18014))
 #        for traj in trajectories:
 #            pool.displacement = np.append(pool.displacement,traj.displacement,axis=1)
 #        ap.plot_displacement(pool.displacement,0)
-
+    
     logfile = open('{}/vislog.txt'.format(ap.figpath),'w')
     lines = ['-----Plot settings-----\n',
             'timebins = {}\n'.format(ap.timebins),
@@ -519,12 +548,12 @@ def main():
             'source data file = {}'.format(ap.filename),'\n',
             '\n-----Plot fitting parameters-----\n',
             'Angular velocity plot:\n'
-            'Avg. covariance = {}\n'.format(ap.meancovars[0]),
             'Distance from center plot:\n'
-            'Avg. covariance = {}\n'.format(ap.meancovars[1])
             ]
     logfile.writelines(lines)
     logfile.close()
+    
+    beep = pool.angularvelocity[(pool.angularvelocity < 0.01) & (pool.angularvelocity > -0.0001)]
 
     print('Process exited normally.')
 
