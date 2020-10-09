@@ -3,9 +3,9 @@
 #   Ant trajectory plotter for python3                                        #
 #   Code written by Dawith Lim                                                #
 #                                                                             #
-#   Version: 1.6.12.0.4.4                                                     #
+#   Version: 1.7.2.3.0.0                                                      #
 #   First written on 2019/11/14                                               #
-#   Last modified: 2020/07/01                                                 #
+#   Last modified: 2020/09/14                                                 #
 #                                                                             #
 #   Packages used                                                             #
 #   -   argsparse: Argument parser to handle input parameters                 #
@@ -27,6 +27,7 @@ import copy
 from distributions import * # (LOCAL)
 import h5py
 import inspect
+import kde # LOCAL
 import math
 import matplotlib as mpl
 from matplotlib.colors import LogNorm
@@ -89,6 +90,7 @@ class AntProcessor:
             angularvelocity = np.append(angularvelocity,th - old)
             old = th
 
+        angularvelocity = np.mod(angularvelocity, 2*np.pi)-np.pi
         angularvelocity = np.array(angularvelocity[1:])*self.fps
         return angularvelocity
 
@@ -196,9 +198,9 @@ class AntProcessor:
 
 #       Logistic fitting
 
-        popt, cov = fit(logistic1D, bincenters, binheight, p0=[0.,1.])
-        ax.plot(plotbins, logistic1D(plotbins,*popt), label='Logistic fit')
-        self.paramnames = ['Mean', 'Amplitude']
+        #popt, cov = fit(logistic1D, bincenters, binheight, p0=[0.,1.])
+        #ax.plot(plotbins, logistic1D(plotbins,*popt), label='Logistic fit')
+        #self.paramnames = ['Mean', 'Amplitude']
 
 #       Lorentz fitting
 
@@ -227,7 +229,15 @@ class AntProcessor:
         ax.legend()
         plt.savefig('{}{}_angularvelocity_{}-{}.png'.format(self.figpath,
                 self.filename,self.timebins,n), bbox_inches='tight')
-        plt.close()
+        plt.close(fig)
+
+        fig1 = plt.figure()
+        ax = fig1.subplots()
+        ax.plot(bincenters,binheight-np.flip(binheight),label='Left-Right')
+        ax.legend()
+        fig1.savefig('{}{}_avsymmetry_{}-{}.png'.format(self.figpath,
+                self.filename,self.timebins,n), bbox_inches='tight')
+        plt.close(fig1)
 
     def plot_dfc_hist(self, dfc, n):
         fig = plt.figure()
@@ -240,25 +250,32 @@ class AntProcessor:
                 density=self.density,label='Data')
         bincenters = histbins[:-1] + np.diff(histbins)/2
         plotbins = np.linspace(min(dfc),max(dfc),10000)
-        popt, cov = fit(composite_lorentz_polyo2, bincenters, binheight,
-                p0=[.1,0.,0.,9.,1.,1.])
-        ax[0].plot(plotbins,composite_lorentz_polyo2(plotbins,*popt), 
-                label='Lorentz + 2nd order poly fit')
+        popt, cov = fit(composite_lorentz_polyo1, bincenters, binheight,
+                p0=[.1,0.,9.,1.,1.])
+        density = kde.kde(dfc, 1000)
+        ax[0].plot(plotbins,composite_lorentz_polyo1(plotbins,*popt), 
+                label='Lorentz + linear fit')
+        ax[0].plot(density[0],density[1])
         ax[0].set_xlabel('distance from center (cm)')
         ax[0].set_ylabel('frequency')
+        ax[0].fill_between(density[0],density[1],y2=0)
         ax[0].legend()
-        ax[1].plot(plotbins,composite_lorentz_polyo2(plotbins,*popt), 
-                label='Lorentz + 2nd order poly fit')
+        ax[1].plot(density[0],density[1])
+        ax[1].fill_between(density[0],density[1],y2=0)
+        ax[1].plot(plotbins,composite_lorentz_polyo1(plotbins,*popt), 
+                label='Lorentz + linear fit')
         ax[1].set_xlabel('distance from center (cm)')
         ax[1].set_ylabel('frequency')
-        ax[1].set_yscale('log')
+        ax[1].set_yscale('log', nonposy='clip')
         #ax[1].set_xscale('log')
-        ax[2].plot(plotbins,composite_lorentz_polyo2(plotbins,*popt), 
-                label='Lorentz + 2nd order poly fit')
+        ax[2].plot(density[0],density[1])
+        ax[2].fill_between(density[0],density[1],y2=0)
+        ax[2].plot(plotbins,composite_lorentz_polyo1(plotbins,*popt), 
+                label='Lorentz + linear fit')
         ax[2].set_xlabel('distance from center (cm)')
         ax[2].set_ylabel('frequency')
-        ax[2].set_yscale('log')
-        ax[2].set_xscale('log')
+        ax[2].set_yscale('log', nonposy='clip')
+        ax[2].set_xscale('log', nonposx='clip')
         plt.savefig('{}{}_dfc_{}-{}.png'.format(self.figpath,
             self.filename,self.timebins,n))
         plt.close()
@@ -278,6 +295,14 @@ class AntProcessor:
         ax = fig.add_subplot(111,projection='polar')
         ax.hist(orientation,bins=np.linspace(-math.pi,math.pi,self.plotres),
                 label='Single ant speed',density=self.density)
+        temp = np.mod(orientation,2*np.pi)
+        temp1 = np.append(temp, temp - 2*np.pi)
+        temp2 = np.append(temp1, temp + 2*np.pi)
+        density = kde.kde(temp2,3000)
+        leng = len(temp)
+        ax.plot(density[0,1000:2001],3*density[1,1000:2001],'r',
+                label='kernel density estimate')
+        ax.fill_between(density[0],density[1],y2=0)
         ax.set_ylabel('frequency')
         plt.savefig('{}{}_orientation_{}-{}.png'.format(self.figpath,
             self.filename,self.timebins,n), bbox_inches='tight')
@@ -316,9 +341,15 @@ class AntProcessor:
         ax = fig.add_subplot()
         ax.hist(speed,bins=np.linspace(min(speed),max(speed),self.plotres),
                 label='Single ant speed',density=self.density)
+        temp = -speed
+        temp = np.append(temp, speed)
+        density = kde.kde(temp,1000)
+        ax.plot(density[0,500:],2*density[1,500:],'r',
+                label='kernel density estimate')
+        ax.fill_between(density[0],density[1],y2=0)
         ax.set_xlabel('Speed (cm/s)')
         ax.set_ylabel('frequency (frames)')
-        ax.set_xlim([0,5])
+        #ax.set_xlim([0,5])
         ax.set_ylim([0,1.2])
         fig.savefig('{}{}_speed_hist_{}-{}.png'.format(self.figpath,
                 self.filename,self.timebins,n), bbox_inches='tight')
@@ -330,7 +361,6 @@ class AntProcessor:
         blyat = self.blyat
         blyat1 = np.arange(len(blyat))
         blyat = blyat1[blyat]
-        print(blyat)
         fig = plt.figure(figsize=(5.5,5.5))
         ax = fig.subplots()
         position = np.transpose(position)
@@ -381,7 +411,6 @@ class AntProcessor:
         plt.close()
 
     def plot_dfc_vs_speed(self,dfc,speed,n):
-        print([len(dfc),len(speed)])
         fig = plt.figure()
         ax = fig.add_subplot(111)
         ax.scatter(dfc,speed, alpha=0.002)
@@ -397,7 +426,7 @@ class AntProcessor:
             shape = np.array([length,2])
             antproc.trajs += 1
             self.position = antproc.get_position(data)
-#            self.displacement = antproc.get_displacement(self.position)
+            #self.displacement = antproc.get_displacement(self.position)
             [self.velocity, self.speed] = antproc.get_velocity(self.position)
             self.orientation = antproc.get_orientation(self.velocity)
             self.angularvelocity = antproc.get_angularvelocity(self)
@@ -553,7 +582,7 @@ def main():
     logfile.writelines(lines)
     logfile.close()
     
-    beep = pool.angularvelocity[(pool.angularvelocity < 0.01) & (pool.angularvelocity > -0.0001)]
+    #beep = pool.angularvelocity[(pool.angularvelocity < 0.01) & (pool.angularvelocity > -0.0001)]
 
     print('Process exited normally.')
 
