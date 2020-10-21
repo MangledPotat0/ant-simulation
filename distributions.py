@@ -43,3 +43,6 @@ def vonMises1D(x, mu, k):
 
 def composite_lorentz_polyo2(x, a1, a2, c, mu, b, gamma):
     return polyo2(x,a1,a2,c) + lorentz1D(x,mu,b,gamma)
+
+def composite_lorentz_polyo1(x, a1, c, mu, b, gamma):
+    return a1*x + lorentz1D(x,mu,b,gamma)
