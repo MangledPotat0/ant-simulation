@@ -1,7 +1,8 @@
 ###############################################################################
-#   Ant tracking code for python 3                                            #
+#   Ant labeled montage generator                                             #
 #   Code written by Dawith Lim                                                #
 #                                                                             #
+#   Version: 2.0.0                                                            #
 #   Packages used                                                             #
 #   -   numpy: Useful for array manipulation and general calculations         #
 #   -   pims: Image handler for trackpy                                       #
@@ -13,14 +14,13 @@
 #                                                                             #
 ###############################################################################
 
-import numpy as np
-import pims
-import trackpy as tp
-import cv2 as cv
-import sys
-import matplotlib as mpl
-import matplotlib.pyplot as plt
 import argparse
+import cv2 as cv
+import h5py
+import numpy as np
+import os
+import sys
+import trackpy as tp
 
 # Create an argument parser object
 
@@ -29,23 +29,50 @@ ap = argparse.ArgumentParser()
 # Add arguments needed for the code
 # -f filename.ext -> Video file to be analyzed
 
-ap.add_argument("-f", "--file", required=True,
-                help="Video file name without the extension")
+ap.add_argument(
+        "-f", "--file",
+        required = True,
+        help = "Experiment file ID"
+        )
 
 args = vars(ap.parse_args())
 
-# Save a montage as a video file
-stack = pims.open(args["file"]+'/'+'*.tiff')
+codepath = os.path.dirname(os.path.realpath(__file__))
+os.chdir(codepath)
 
-cv.imwrite('stack.tiff',stack[0])
+montpath = '../data/montages/{}'.format(args['file'])
+try:
+    os.mkdir(montpath)
+except OSError:
+    print('Failed to create new directory')
 
-print(stack[1].shape)
-height, width, layers = stack[0].shape
-montage = cv.VideoWriter(args["file"]+'montage.avi',
-                         cv.VideoWriter_fourcc(*"XVID"),15,(width,height))
+vidpath = '../data/videos/'
+trajpath = '../data/trajectories/'
 
-for i in range(0,len(stack)):
-    montage.write(cv.cvtColor(stack[i].astype('uint8'), cv.COLOR_BGRA2BGR))
+video = cv.VideoCapture('{}{}.mp4'.format(vidpath,args['file']))
+trajfile = h5py.File('{}{}data.hdf5'.format(trajpath,args['file']),'r')
+trajectory = trajfile['antdata'][1:,:2]
 
-montage.release()
+video.read()
+video.read()
+success, _ = video.read()
+ct = 0
+radius = 3
+thickness = 2
+color = [0,255,0]
 
+while success:
+    coords = tuple(trajectory[ct])
+    success, frame = video.read()
+    frame = cv.circle(
+            frame, (coords[1],coords[0]),
+            radius, color,
+            thickness )
+    cv.imwrite('{}/{}f{}.png'.format(
+            montpath,args['file'],
+            str(ct).zfill(5)
+            ),
+        frame
+        )
+    ct += 1
+sys.exit(0)
