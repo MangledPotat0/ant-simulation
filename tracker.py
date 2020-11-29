@@ -50,8 +50,8 @@ import trackpy as tp
 
 class AntTracker:
 
-    def __init__(self, exp, vfn):
-        self.vfn = vfn
+    def __init__(self, exp):
+#  exp = experiment id, name of the video file without the extension
         self.exp = exp
         filepath = os.path.dirname(os.path.realpath(__file__))
         os.chdir(filepath)
@@ -59,12 +59,12 @@ class AntTracker:
         self.outpath = '../data/trajectories/{}'.format(exp)
         self.datafile = '{}data.hdf5'.format(exp)
 
-        self.vid = cv.VideoCapture('{}{}'.format(self.vidpath,vfn))
+        self.vid = cv.VideoCapture('{}{}.mp4'.format(self.vidpath, exp))
         self.check_video_capture()
 
         self.create_output_dir()
 
-        # Create a background substractor object
+# Create a background substractor object and load prepared background image
         self.backsub = cv.createBackgroundSubtractorMOG2()
         bgnd = cv.imread('background.tiff')
         bgnd = cv.cvtColor(bgnd,cv.COLOR_BGRA2GRAY)
@@ -79,9 +79,9 @@ class AntTracker:
     def check_video_capture(self):
         success, frame = self.vid.read()
         if not success:
-            raise IOError('Video file read failed: {}'.format(self.vfn))
+            raise IOError('Video file read failed: {}.mp4'.format(self.exp))
 
-        print('Successfully opened {}.\n'.format(self.vfn))
+        print('Successfully opened {}.mp4.\n'.format(self.exp))
         size = np.shape(frame)
         print('Frame size: {}x{}'.format(size[0],size[1]))
         print('Channel number: {}'.format(size[2]))
@@ -94,6 +94,7 @@ class AntTracker:
             print('Created directory [{}]'.format(self.exp))
 
     def proc_frame(self, frame):
+# Main routine; convert to greyscale, subtract background, and then detect feature.
         mask = cv.cvtColor(frame, cv.COLOR_BGRA2GRAY)
         mask = self.backsub.apply(mask, learningRate = 0)
         feature = tp.locate(
@@ -152,9 +153,9 @@ def main():
     ap.add_argument('-f', '--file', required = True, 
                     help = '.mp4 video file name without the extension')
     args = vars(ap.parse_args())
-    vfn = '{}.mp4'.format(args['file']) 
    
-    at = AntTracker(args['file'], vfn)
+    at = AntTracker(args['file'])
+# Open a data file to save the trajectory
     datafile = h5py.File('{}{}data.hdf5'.format(at.outpath,args['file']), 'w')
 
     print('Initialized.')

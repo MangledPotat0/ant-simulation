@@ -47,6 +47,18 @@ import kde
 class AntProcessor:
 
     def __init__(self, argparser):
+#  jump = Number of steps (in frames) between calculations. jump = 1 means
+#  running calculation at every frame, and jump = 2 means skipping every other
+#  frame, etc.
+#  plotres = Plot resolution (for histograms). Should be deprecated in the
+#  future since different plots have different appropriate binspec
+#  boundary = if True, plot the boundary only; if False, plot all space.
+#  boundmin, boundmax demarcate where the 'boundary' region begins.
+#  (i.e. x < boundmin or x > boundmax means it's part of the boundary region)
+#  size = actual size of the box in cm, fps = frames per second,
+#  roll = number of frames to fold into rolling average
+#  density = whether to plot cumulative counts or densities on histogram
+#  trajs = number of trajectories
         self.jump = 1
         self.plotres = 40
         self.boundary = False
@@ -57,16 +69,21 @@ class AntProcessor:
         self.roll = 10
         self.density = True
         self.trajs = 0
+
         self.meancovars = []
         self.partialtraj = np.empty(0, dtype = np.int)
 
         args = vars(argparser.parse_args())
+#  timebins = number of bins along the time direction, for analyses of figures
+#  during different time intervals. runtype is choice between 'p' (pool), meaning
+#  the file is a collection of trajectories, or 's' (single), meaning the file
+#  contains only one trajectory. Running with 'p' for single file should still
+#  run, but running with 's' option on multiple trajectories will cause error.
         self.timebins = args['timebins']
         self.runtype = args['runtype']
         
         temppath = os.path.dirname(os.path.realpath(__file__))
         os.chdir(temppath)
-        self.datapath = os.getcwd()
         self.filename = args['file']
         self.filepath = "../data/trajectories/"
         self.datafile = h5py.File(
@@ -74,6 +91,7 @@ class AntProcessor:
                     'r')
         self.figpath = "../data/plots/{}/".format(self.filename)
 
+#  Set up new figure export directory if it doesn't already exist
         try:
             os.mkdir(self.figpath)
             print('Target directory not found; creating new directory.')
@@ -84,6 +102,7 @@ class AntProcessor:
         print('Process initialized.')
 
     def get_acceleration(self, speed):
+#  Calculate acceleration as a vector (cm / s^2)
         acceleration = []
         temp = 0
 
@@ -96,6 +115,7 @@ class AntProcessor:
         return acceleration * self.fps
 
     def get_angularvelocity(self, traj):
+#  Calculate angular velocity (radians / s)
         orientation = traj.orientation
         angularvelocity = np.empty(0)
         old = 0
@@ -110,6 +130,8 @@ class AntProcessor:
         return angularvelocity
 
     def get_displacement(self, position):
+#  Compute time series of mean displacement starting from each positions along
+#  the trajectory
         trajectory = position
         length = len(trajectory)
         maxrange = 1000
@@ -121,21 +143,22 @@ class AntProcessor:
             for m in range(length - n):
                 if terminate < maxrange:
                     displacement[n,m] = distance(
-                                            trajectory[m+n] - trajectory[m]
-                                            )
+                                            trajectory[m+n] - trajectory[m])
                     terminate += 1
 
         return displacement
 
-    def get_distance_to_boundary(self, position):
-        dtb = np.empty(0)
+    def get_distance_to_center(self, position):
+#  Compute distance from each point on the trajectory to the center of
+#  the box.
+        dfc = np.empty(0)
 
         for coords in position:
             distance = math.sqrt((coords[0] - self.size / 2) ** 2 
                                  + (coords[1] - self.size / 2) ** 2)
-            dtb = np.append(dtb, distance)
+            dfc = np.append(dtb, distance)
         
-        return dtb
+        return dfc
 
     def get_orientation(self, velocity):
         orientation = np.empty(0)
@@ -144,6 +167,7 @@ class AntProcessor:
             try:
                 angle = math.atan2(x[0], x[1])
                 orientation = np.append(orientation, angle)
+# When infinity gets involved, pass error message
             except:
                 print('Math error')
 
@@ -161,6 +185,7 @@ class AntProcessor:
         x = np.delete(x, zeros)
         y = np.delete(y, zeros)
         
+# Rescale the position to be in cm instead of pixel counts.
         position = np.array(
                     [(x - min(x)) * self.size / (max(x) - min(x)),
                      (y - min(y)) * self.size / (max(y) - min(y))])
@@ -565,7 +590,7 @@ class AntProcessor:
             self.orientation = antproc.get_orientation(self.velocity)
             self.angularvelocity = antproc.get_angularvelocity(self)
             self.acceleration = antproc.get_acceleration(self.speed)
-            self.dfc = antproc.get_distance_to_boundary(self.position)[2:]
+            self.dfc = antproc.get_distance_to_center(self.position)[2:]
             self.position = self.position[2:]
             self.velocity = self.velocity[1:]
             self.speed = self.speed[1:]
