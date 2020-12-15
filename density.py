@@ -3,9 +3,9 @@
 #   Density distribution plot code                                            #
 #   Code written by Dawith Lim                                                #
 #                                                                             #
-#   Version 1.1.3                                                             #
+#   Version 1.2.7                                                             #
 #   First written on 2020/06/24                                               #
-#   Last modified: 2020/11/28                                                 #
+#   Last modified: 2020/12/14                                                 #
 #                                                                             #
 #   Description:                                                              #
 #     This code divides input image stream into square bins, and integrates   #
@@ -31,6 +31,7 @@ import matplotlib.cm as cm
 import numpy as np
 import os
 import sys
+import time as tt
 
 class Processor():
 
@@ -42,7 +43,7 @@ class Processor():
 #  of the image. The bins are squares in shapes.
 #  antcount = number of ants in the video that's being processed.
         self.fileid = args['file']
-        self.binsize = args['binsize']
+        self.bincount = args['bincount']
         self.antcount = args['antcount']
         
         codepath = os.path.dirname(os.path.realpath(__file__))
@@ -51,6 +52,7 @@ class Processor():
 #  Default directory of where the video files are located, relative to the
 #  working directory (where codebase is located).
         self.filepath = '../data/videos/'
+        self.outpath = '../data/density/'
 
 #  Create a background subtractor object.
 #  The background subtractor is fed the pre-produced background image with
@@ -63,6 +65,7 @@ class Processor():
         self.bgnd = cv.cvtColor(cv.imread('background.tiff'),
                                 cv.COLOR_BGRA2GRAY)
         self.frame = self.backsub.apply(self.bgnd, learningRate = 1)
+        self.binsize = np.shape(self.frame) / self.bincount
         
 #  Call the video file. I set the extension to mp4 specifically because
 #  this format seem to have the best support in general. The original file
@@ -96,7 +99,9 @@ class Processor():
         sumval = np.sum(self.frame)
         self.frame = (self.antcount / sumval) * self.frame
 
-        imstack = np.array([proc_frame(self.binsize, self.frame)])
+        imstack = np.array([proc_frame(self.bincount,
+                                       self.binsize,
+                                       self.frame)])
         success, frame = self.video.read()
         success, frame = self.video.read()
         success = True
@@ -110,7 +115,9 @@ class Processor():
                                            cv.THRESH_BINARY)
             sumval = np.sum(self.frame)
             self.frame = (self.antcount / sumval) * self.frame
-            imstack=np.vstack((imstack, [proc_frame(self.binsize, self.frame)]))
+            imstack=np.vstack((imstack, [proc_frame(self.bincount,
+                                                    self.binsize,
+                                                    self.frame)]))
             success, frame = self.video.read()
 
         return imstack
@@ -119,7 +126,9 @@ class Processor():
 #  Export the ant density by bins as a time series in a data file.
 #  Data shape is (nframes * xbins * ybins)
         imstack = imstack / 255
-        datafile = h5py.File('{}.hdf5'.format(self.fileid), 'w')
+        datafile = h5py.File('{}{}{}.hdf5'.format(self.outpath,
+                                                  self.fileid,
+                                                  self.bincount), 'w')
         dset = datafile.create_dataset('{}x{}'.format(self.binsize,
                                                       self.binsize),
                                        data = imstack,
@@ -127,60 +136,61 @@ class Processor():
         datafile.close()
 
     def plot(self,imstack):
+        print(np.shape(imstack))
         plotstack = []
         ct = 0
         try:
-            os.makedirs('../data/density/{}{}'.format(self.fileid, 
-                                                      self.binsize))
+            os.makedirs('{}{}{}'.format(self.outpath,
+                                        self.fileid, 
+                                        self.bincount))
         except:
             print('Directory already exists.\n')
         
         maxval = np.max(imstack)
-        
+        fig = plt.figure(figsize=(5.5, 5.5))
+        ims = []
         for frame in imstack:
-            plt.figure(figsize=(5.5, 5.5))
-            plt.imshow(frame, cmap = 'Blues',
-                       interpolation = 'nearest', 
-                       vmin = 0, vmax = maxval)
-            plt.colorbar()
-            plt.savefig(
-                    '../data/density/{}{}/{}{}{}.png'.format(
-                            self.fileid, self.binsize,
-                            self.fileid, self.binsize, ct),
-                    bbox_inches = 'tight')
-            plt.close()
-            ct += 1
+            ims.append((plt.pcolor(frame,
+                                   norm = plt.Normalize(0, self.antcount),
+                                   cmap = 'Blues'), ))
+
+        anim = ani.ArtistAnimation(fig, ims)
+        #fig.colorbar()
+            
+
+        anim.save('../data/density/{}{}/{}{}.mp4'.format(
+                                self.fileid, self.bincount,
+                                self.fileid, self.bincount),
+                 fps = 10)
+        plt.close(fig)
 
 
-def proc_frame(binsize, frame):
+def proc_frame(bincount, binsize, frame):
 #  This function bins optical mass into corresponding spatial bins.
     size = np.shape(frame)
-    integrated = np.empty((math.ceil(size[0] / binsize) - 1,
-                math.ceil(size[1] / binsize) - 1))
-    integrated.fill(np.nan)
+    integrated = np.empty((bincount, bincount))
+    integrated.fill(999)
 
-    i, j = 1, 1
-    for row in integrated:
-        for column in integrated:
-            integrated[i - 1, j - 1] = np.sum(
-                    frame[i * binsize:(i + 1) * binsize - 1,
-                    j * binsize : (j + 1) * binsize - 1]
-            j += 1
-        j = 0
-        i += 1
+    for i in range(len(integrated)):
+        for j in range(len(integrated[i])):
+            xlow = int(np.round(i * binsize[1]))
+            xhigh = int(np.round( (i + 1) * binsize[1] - 1))
+            ylow = int(np.round(j * binsize[1]))
+            yhigh = int(np.round((j + 1) * binsize[1] - 1))
+            integrated[i, j] = np.sum(frame[xlow:xhigh,ylow:yhigh])
 
     return integrated
 
 def main():
-    
+    start = tt.time()
 # Handle input parameters
     ap = argparse.ArgumentParser()
     ap.add_argument(
                 '-f', '--file', required = True,
                 help = 'mpeg-4 video file name, without the file extension')
     ap.add_argument(
-                '-b', '--binsize', required = True,
-                type = np.int8, help = 'Bin size')
+                '-b', '--bincount', required = True,
+                type = np.int8, help = 'Number of bins along one direction')
     ap.add_argument(
                 '-n', '--antcount', required = True,
                 type = np.int8, help = 'Number of ants in video')
@@ -191,6 +201,10 @@ def main():
     proc.export(imstack)
     proc.plot(imstack)
 
+    end = tt.time()
+
+    print('Optical density processing completed.\n Runtime: {}'.format(
+            end - start))
     sys.exit(0)
 
 if __name__ == '__main__':
