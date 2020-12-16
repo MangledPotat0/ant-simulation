@@ -1,61 +1,93 @@
 ################################################################################
 #                                                                              #
 #   Ant density data stacker for single trajectories                           #
+#   Code written by: Dawith Lim                                                #
 #                                                                              #
+#   Version 1.2.0                                                              #
 #   Created: 2020/08/17                                                        #
-#   Last modified: 2020/08/17                                                  #
+#   Last modified: 2020/12/16                                                  #
+#                                                                              #
+#   Description:                                                               #
+#     This code takes multiple optical density data from multiple experiments  #
+#     and combine them into a single lattice.                                  #
 #                                                                              #
 ################################################################################
 
+from matplotlib import animation as ani
 from matplotlib import pyplot as plt
 import argparse as ap
 import h5py
 import numpy as np
 import os
+import time
 
 arg = ap.ArgumentParser()
-arg.add_argument('-f', '--file', nargs='+', 
-        help='.hdf5 data files without file extension')
-arg.add_argument('-n', '--number', help='Total number of ants')
-arg.add_argument('-s', '--size', help='Binsize')
+arg.add_argument('-f', '--file', nargs = '+', 
+                 help = '.hdf5 data files without file extension')
+arg.add_argument('-n', '--number', help = 'Total number of ants')
+arg.add_argument('-b', '--bincount', help = 'Number of bins')
 args = vars(arg.parse_args())
 
-# filepath = '../data/density/'
-size = args['size']
-intsize = int(1100/int(size))
+filepath = '../data/density/'
+antcount = int(args['number'])
+bincount = int(args['bincount'])
 filenames = args['file']
-pile = np.empty((intsize,intsize))
-length=999999999999999999999999
-for name in filenames:
-    filetemp = h5py.File('{}.hdf5'.format(name),'r')
-    datatemp = filetemp['{}x{}'.format(size,size)]
-    if length > len(datatemp):
-        length = len(datatemp)
-    else:
-        length=length
-    print(length)
-    pile = pile[:length] + datatemp[:length]
+length = -1
 
-outputfile = h5py.File('{}.hdf5'.format('output'),'w')
-outputfile.create_dataset('{}x{}'.format(size,size), data=pile)
+out = time.strftime('%Y%m%d%H')
+
+for name in filenames:
+    filetemp = h5py.File('{}.hdf5'.format(name), 'r')
+    datatemp = filetemp['{}x{}'.format(bincount, bincount)]
+    if length == -1:
+        length = len(datatemp)
+        pile = np.empty((length, bincount, bincount))
+    else:
+        pile += datatemp
+    #if length > len(datatemp):
+    #    length = len(datatemp)
+    #else:
+    #    length = length
+    #print(length)
+    #pile = pile[:length] + datatemp[:length]
+
+outputfile = h5py.File('{}.hdf5'.format(out), 'w')
+outputfile.create_dataset('{}x{}'.format(bincount, bincount), data = pile)
 outputfile.flush()
 outputfile.close()
-ct=0
+ct = 0
 try:
-    os.makedirs('../data/density/{}{}'.format('output',size))
+    os.makedirs('../data/density/{}{}'.format('output', size))
 except:
     print('filepath exists')
 
+
+plotstack = []
+ct = 0
+
+try:
+    os.makedirs('{}{}{}'.format(filepath,
+                                out, 
+                                bincount))
+except:
+    print('Directory already exists.\n')
+
+fig = plt.figure(figsize = (5.5, 5.5))
+
+ims = []
+
 for frame in pile:
-    maxval = np.max(0.001*int(args['number']))
-    plt.figure(figsize=(5.5,5.5))
-    plt.imshow(frame, cmap='Blues',interpolation='nearest',vmin=0,
-            vmax=maxval)
-    plt.colorbar()
-    plt.savefig('../data/density/{}{}/{}{}{}.png'.format(
-        'output',size,'output',size,ct),
-        bbox_inches='tight')
-    plt.close()
-    ct += 1
+    normed = antcount * frame / np.sum(frame)
+    ims.append((plt.pcolor(normed,
+                           norm = plt.Normalize(0, antcount),
+                           cmap = 'Blues'), ))
+        
+
+anim = ani.ArtistAnimation(fig, ims)
+anim.save('../data/density/{}{}/{}{}.mp4'.format(
+                                out, bincount,
+                                out, bincount),
+          fps = 10)
+plt.close(fig)
 
 print('Process exited successfully.')

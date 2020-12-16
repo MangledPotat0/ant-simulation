@@ -129,8 +129,8 @@ class Processor():
         datafile = h5py.File('{}{}{}.hdf5'.format(self.outpath,
                                                   self.fileid,
                                                   self.bincount), 'w')
-        dset = datafile.create_dataset('{}x{}'.format(self.binsize,
-                                                      self.binsize),
+        dset = datafile.create_dataset('{}x{}'.format(self.bincount,
+                                                      self.bincount),
                                        data = imstack,
                                        dtype = np.float32)
         datafile.close()
