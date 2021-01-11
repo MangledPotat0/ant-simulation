@@ -3,9 +3,9 @@
 #   Density distribution plot code                                            #
 #   Code written by Dawith Lim                                                #
 #                                                                             #
-#   Version 1.2.7                                                             #
+#   Version 1.2.8                                                             #
 #   First written on 2020/06/24                                               #
-#   Last modified: 2020/12/14                                                 #
+#   Last modified: 2020/12/17                                                 #
 #                                                                             #
 #   Description:                                                              #
 #     This code divides input image stream into square bins, and integrates   #
@@ -62,7 +62,7 @@ class Processor():
 #  marked as background and get removed.
 
         self.backsub = cv.createBackgroundSubtractorMOG2()
-        self.bgnd = cv.cvtColor(cv.imread('background.tiff'),
+        self.bgnd = cv.cvtColor(cv.imread('background.png'),
                                 cv.COLOR_BGRA2GRAY)
         self.frame = self.backsub.apply(self.bgnd, learningRate = 1)
         self.binsize = np.shape(self.frame) / self.bincount
@@ -106,18 +106,27 @@ class Processor():
         success, frame = self.video.read()
         success = True
 
+        kernel = np.ones((3, 3), dtype = np.uint8)
+
 #  If the process for first frame happened without failing, then proceed
 #  with the rest of the video until frame load fails.
         while success:
             self.frame = cv.cvtColor(frame, cv.COLOR_BGRA2GRAY)
             self.frame = self.backsub.apply(self.frame, learningRate = 0)
-            ret, self.frame = cv.threshold(self.frame, 245, 255, 
-                                           cv.THRESH_BINARY)
+            self.frame = 255. - self.frame
+            ret, self.frame = cv.threshold(self.frame, 60, 255, 
+                                           cv.THRESH_TOZERO)
+            cont = np.clip(((255 - self.frame) ** 1.06), 0, 255)
+            for i in range(4):
+                cont = np.clip((cont - 12), 0, 255)
+                cont = np.clip((cont ** 1.05), 0, 255)
+            self.frame = cv.morphologyEx(cont, cv.MORPH_OPEN, kernel, 
+                                         iterations = 2)
             sumval = np.sum(self.frame)
             self.frame = (self.antcount / sumval) * self.frame
-            imstack=np.vstack((imstack, [proc_frame(self.bincount,
-                                                    self.binsize,
-                                                    self.frame)]))
+            imstack = np.vstack((imstack, [proc_frame(self.bincount,
+                                                      self.binsize,
+                                                      self.frame)]))
             success, frame = self.video.read()
 
         return imstack

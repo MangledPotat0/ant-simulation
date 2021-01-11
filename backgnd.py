@@ -69,6 +69,8 @@ ct = 0
 while success and ((not forcebreak) or (ct < depth)):
     ct += 1
     success, frame = video.read()
+    success, frame = video.read()
+    success, frame = video.read()
     arr.append(frame) #(np.append(arr,frame))
 
 arr = np.array(arr, dtype = np.uint8)
@@ -87,7 +89,7 @@ for i in range(x):
                       max(arr[:, i, j, 1]),
                       max(arr[:, i, j, 2])]
 
-cv.imwrite('background.tiff', bgnd)
+cv.imwrite('background.png', bgnd)
 
 computedone = tt.time()
 print('Setup time: {}\nTotal time: {}'.format(setupdone - start,

@@ -3,7 +3,7 @@
 #   Ant density data stacker for single trajectories                           #
 #   Code written by: Dawith Lim                                                #
 #                                                                              #
-#   Version 1.2.0                                                              #
+#   Version 1.2.1                                                              #
 #   Created: 2020/08/17                                                        #
 #   Last modified: 2020/12/16                                                  #
 #                                                                              #
@@ -32,30 +32,29 @@ filepath = '../data/density/'
 antcount = int(args['number'])
 bincount = int(args['bincount'])
 filenames = args['file']
-length = -1
+length = 18000
 
 out = time.strftime('%Y%m%d%H')
 
 for name in filenames:
-    filetemp = h5py.File('{}.hdf5'.format(name), 'r')
+    filetemp = h5py.File('{}{}.hdf5'.format(filepath, name), 'r')
     datatemp = filetemp['{}x{}'.format(bincount, bincount)]
-    if length == -1:
-        length = len(datatemp)
-        pile = np.empty((length, bincount, bincount))
-    else:
-        pile += datatemp
+    #if length == -1:
+    #    length = len(datatemp)
+    #    pile = np.empty((length, bincount, bincount))
+    #else:
+    #    pile += datatemp
     #if length > len(datatemp):
     #    length = len(datatemp)
     #else:
     #    length = length
     #print(length)
-    #pile = pile[:length] + datatemp[:length]
+    pile = pile[:length] + datatemp[:length]
 
-outputfile = h5py.File('{}.hdf5'.format(out), 'w')
+outputfile = h5py.File('{}{}.hdf5'.format(filepath, out), 'w')
 outputfile.create_dataset('{}x{}'.format(bincount, bincount), data = pile)
 outputfile.flush()
 outputfile.close()
-ct = 0
 try:
     os.makedirs('../data/density/{}{}'.format('output', size))
 except:
@@ -63,7 +62,6 @@ except:
 
 
 plotstack = []
-ct = 0
 
 try:
     os.makedirs('{}{}{}'.format(filepath,

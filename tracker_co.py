@@ -5,10 +5,10 @@
 #       The Code takes a .mp4 video file as input and detects features,       #
 #       builds a trajectory and saved in hdf5 format.                         #
 #                                                                             #
-#   Version 1.2.1                                                             #
+#   Version 1.1.2                                                             #
 #   Code written by Dawith Lim                                                #
 #   First written on 2019/09/18                                               #
-#   Last modified: 2021/01/11                                                 #
+#   Last modified: 2020/11/27                                                 #
 #                                                                             #
 #   Packages used                                                             #
 #   -   argparse: Argument parser, allows me to use required & optional       #
@@ -56,7 +56,7 @@ class AntTracker:
         filepath = os.path.dirname(os.path.realpath(__file__))
         os.chdir(filepath)
         self.vidpath = '../data/videos/'
-        self.outpath = '../data/trajectories/'
+        self.outpath = '../data/trajectories/{}'.format(exp)
         self.datafile = '{}data.hdf5'.format(exp)
 
         self.vid = cv.VideoCapture('{}{}.mp4'.format(self.vidpath, exp))
@@ -66,7 +66,7 @@ class AntTracker:
 
 # Create a background substractor object and load prepared background image
         self.backsub = cv.createBackgroundSubtractorMOG2()
-        bgnd = cv.imread('background.png')
+        bgnd = cv.imread('background.tiff')
         bgnd = cv.cvtColor(bgnd,cv.COLOR_BGRA2GRAY)
 
 # Learning rate 0-1 determines how much to modify the background
@@ -74,10 +74,7 @@ class AntTracker:
 # In this case, background is externally supplied via import, so
 # it is set to 1, but then changed to 0 (i.e. subsequent frames
 # does not modify the background mask at all).
-        empty = np.empty(np.shape(bgnd))
-        for i in range(10):
-            self.backsub.apply(bgnd, learningRate = 0)
-
+        bgnd = self.backsub.apply(bgnd, learningRate = 1)
 
     def check_video_capture(self):
         success, frame = self.vid.read()
@@ -96,30 +93,18 @@ class AntTracker:
             os.mkdir(self.exp)
             print('Created directory [{}]'.format(self.exp))
 
-
     def proc_frame(self, frame):
 # Main routine; convert to greyscale, subtract background, and then detect feature.
-        frame = cv.cvtColor(frame, cv.COLOR_BGRA2GRAY)
-        frame = self.backsub.apply(frame, learningRate = 0)
-
-        frame = 255. - frame
-        ret, frame = cv.threshold(frame, 60, 255, cv.THRESH_TOZERO)
-        cont = np.clip(((255 - frame) ** 1.06), 0, 255)
-        for i in range(4):
-            cont = np.clip((cont - 12), 0, 255)
-            cont = np.clip((cont ** 1.05), 0, 255)
-        mask = cont
-
+        mask = cv.cvtColor(frame, cv.COLOR_BGRA2GRAY)
+        mask = self.backsub.apply(mask, learningRate = 0)
         feature = tp.locate(
                     mask, # Input image mask
-                    27, # Estimated size of features in pixels.
+                    43, # Estimated size of features in pixels.
                     invert = False, # Color inversion
                     noise_size = 3, # Size of Gaussian noise kernel
                     minmass = 15000, # Minimum optical mass of features
                     max_iterations = 100)
-
         return feature
-
 
     def run(self, datafile):
         count = 0
@@ -132,68 +117,33 @@ class AntTracker:
 # This is slower than having a predetermined size, so in the future
 # It may be good for experiment code to write a params file that
 # passes the number of frames to this code. 
-        first = False #True
-        
         dataset = datafile.create_dataset(
-                                'antdata{}'.format(0),
-                                (1, 10), # Initial dataset shape
+                                'antdata',
+                                (1,9), # Initial dataset shape
                                 dtype = np.float32, 
-                                maxshape = (None, 10),
-                                chunks = (1, 10))
-        #dataset = []
+                                maxshape = (None,9),
+                                chunks = (1,9))
 
         while success:
             feature = self.proc_frame(frame)
-            feature.loc[:, 'frame'] = pd.Series(count, index = feature.index)
-            #print(feature.head())                
-
-            if first:
-                try:
-                    for i in range(len(feature[:, 0])):
-                        dataset.append(datafile.create_dataset(
-                                    'antdata{}'.format(i),
-                                    (1, 10), # Initial dataset shape
-                                    dtype = np.float32, 
-                                    maxshape = (None, 10),
-                                    chunks = (1, 10)))
-                except IndexError:
-                    dataset.append(datafile.create_dataset(
-                                    'antdata{}'.format(0),
-                                    (1, 10), # Initial dataset shape
-                                    dtype = np.float32, 
-                                    maxshape = (None, 10),
-                                    chunks = (1, 10)))
-                first = False
-
+            feature.loc[:,'frame'] = pd.Series(count, index = feature.index)
+            print(feature.head())                
             try:
-                #iterr = tp.link_iter(feature, 10, memory=2)
-                for entry in feature.to_numpy():
-                    print(entry)
-                    feat = np.zeros(10)
-                    feat[:9] = entry
-                    dataset[-1] = feat
-                    dataset.resize((dataset.shape[0] + 1, 10))
+                dataset[count] = feature
             except:
-                print('blerp')
-                pass
-                #dataset[count] = np.full((1, 9), np.nan, dtype = np.float32)
-            
-            count += 1
-            print('Frame {} processed.'.format(count))
+                dataset[count] = np.full((1,9),np.nan,dtype = np.float32)
 
+            print('Frame {} processed.'.format(count))
+            count += 1
+
+            dataset.resize((dataset.shape[0]+1,9))
             datafile.flush()
             success, frame = self.vid.read()
-            if count > 10:
-                success = False
-        print('Linking ant trajectorees')
-        link = tp.link(pd.DataFrame(dataset[:,:9]), 1000,
-                       pos_columns=[0, 1], t_column = 8)
-        dataset[:] = link[:]
-        datafile.flush()
+
         datafile.close()
 
 
-if __name__ == '__main__':
+def main():
 # Enable numba JIT compiler for trackpy
     tp.enable_numba()
 
@@ -212,9 +162,14 @@ if __name__ == '__main__':
 
     print('Running ant tracker')
     at.run(datafile)
+    print('Linking ant trajectorees')
+    #at.link_trajectory()
     print('Process exited normally.')
     sys.exit(0)
 
 
+# Run the code!
+if __name__ == '__main__':
+    main()
 
 # EOF
