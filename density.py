@@ -3,7 +3,7 @@
 #   Density distribution plot code                                            #
 #   Code written by Dawith Lim                                                #
 #                                                                             #
-#   Version 1.2.8                                                             #
+#   Version 1.2.9                                                             #
 #   First written on 2020/06/24                                               #
 #   Last modified: 2020/12/17                                                 #
 #                                                                             #
@@ -109,7 +109,14 @@ class Processor():
         kernel = np.ones((3, 3), dtype = np.uint8)
 
 #  If the process for first frame happened without failing, then proceed
-#  with the rest of the video until frame load fails.
+#  with the rest of the video until frame load fails. Typically this will
+#  happen when the reader reaches the end of the video file, but this is not
+#  necessarily guaranteed!
+
+#  Premature termination condition for testing
+        pkill = 0
+        target = 100
+
         while success:
             self.frame = cv.cvtColor(frame, cv.COLOR_BGRA2GRAY)
             self.frame = self.backsub.apply(self.frame, learningRate = 0)
@@ -128,6 +135,11 @@ class Processor():
                                                       self.binsize,
                                                       self.frame)]))
             success, frame = self.video.read()
+            pkill += 1
+            if pkill == target:
+                success = False
+                print('Process killed at {} frames. Comment out {}'.format(
+                        target, 'lines 139-142 to avoid this.'))
 
         return imstack
 
@@ -166,7 +178,7 @@ class Processor():
         anim = ani.ArtistAnimation(fig, ims)
         #fig.colorbar()
             
-
+        print('Min: {}\nMax: {}'.format(np.max(frame), np.min(frame)))
         anim.save('../data/density/{}{}/{}{}.mp4'.format(
                                 self.fileid, self.bincount,
                                 self.fileid, self.bincount),
