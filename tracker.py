@@ -27,6 +27,7 @@
 #                tracking.                                                    #
 ###############################################################################
 
+
 import argparse
 import cv2 as cv
 import h5py
@@ -89,6 +90,7 @@ class AntTracker:
         print('Frame size: {}x{}'.format(size[0],size[1]))
         print('Channel number: {}'.format(size[2]))
 
+
     def create_output_dir(self):
         if os.path.isdir(self.exp):
             print('Directory [{}] already exists'.format(self.exp))
@@ -132,49 +134,39 @@ class AntTracker:
 # This is slower than having a predetermined size, so in the future
 # It may be good for experiment code to write a params file that
 # passes the number of frames to this code. 
-        first = False #True
-        
-        dataset = datafile.create_dataset(
-                                'antdata{}'.format(0),
-                                (1, 10), # Initial dataset shape
-                                dtype = np.float32, 
-                                maxshape = (None, 10),
-                                chunks = (1, 10))
-        #dataset = []
+        dataset = {}
+        first = True
 
+        
         while success:
             feature = self.proc_frame(frame)
             feature.loc[:, 'frame'] = pd.Series(count, index = feature.index)
-            #print(feature.head())                
-
             if first:
-                try:
-                    for i in range(len(feature[:, 0])):
-                        dataset.append(datafile.create_dataset(
-                                    'antdata{}'.format(i),
-                                    (1, 10), # Initial dataset shape
-                                    dtype = np.float32, 
-                                    maxshape = (None, 10),
-                                    chunks = (1, 10)))
-                except IndexError:
-                    dataset.append(datafile.create_dataset(
-                                    'antdata{}'.format(0),
-                                    (1, 10), # Initial dataset shape
-                                    dtype = np.float32, 
-                                    maxshape = (None, 10),
-                                    chunks = (1, 10)))
+                old = feature
                 first = False
-
+            #print(feature.head())                
+            
+            
             try:
-                #iterr = tp.link_iter(feature, 10, memory=2)
-                for entry in feature.to_numpy():
-                    print(entry)
-                    feat = np.zeros(10)
-                    feat[:9] = entry
-                    dataset[-1] = feat
-                    dataset.resize((dataset.shape[0] + 1, 10))
-            except:
-                print('blerp')
+                iterr = tp.link_df_iter((old, feature), 20)
+                shoo = pd.concat(iterr)
+                print(shoo)
+                if (count % 2) != 0:
+                    for entry in shoo.to_numpy():
+                        key = int(entry[-1])
+                        try:
+                            dset = dataset[key]
+                        except KeyError:
+                            dataset[key] = spawn_dataset(key)
+                            dset = dataset[key]
+                        feat = np.zeros(10)
+                        feat[:] = entry
+                        dset[-1] = feat
+                        dset.resize((dset.shape[0] + 1, 10))
+                        datafile.flush()
+# Using except: pass is bad practice, change it to the 'proper' way later
+            except IndexError:
+                print('Noo')
                 pass
                 #dataset[count] = np.full((1, 9), np.nan, dtype = np.float32)
             
@@ -183,14 +175,31 @@ class AntTracker:
 
             datafile.flush()
             success, frame = self.vid.read()
-            if count > 10:
-                success = False
+            old = feature
+            
+# Premature termination condition for testing
+            #if count == 25:
+            #    success = False
+
         print('Linking ant trajectorees')
-        link = tp.link(pd.DataFrame(dataset[:,:9]), 1000,
-                       pos_columns=[0, 1], t_column = 8)
-        dataset[:] = link[:]
+        #link = tp.link(pd.DataFrame(dataset[:,:9]), 1000,
+        #               pos_columns=[0, 1], t_column = 8)
+        #dataset[:] = link[:]
+        for key in datafile:
+            dset = datafile[key]
+            dset.resize((dset.shape[0] - 1, 10))
         datafile.flush()
         datafile.close()
+
+
+def spawn_dataset(key):
+    dset = datafile.create_dataset(
+                            'antdata{}'.format(key),
+                            (1, 10), # Initial dataset shape
+                            dtype = np.float32, 
+                            maxshape = (None, 10),
+                            chunks = (1, 10))
+    return dset
 
 
 if __name__ == '__main__':
@@ -214,7 +223,6 @@ if __name__ == '__main__':
     at.run(datafile)
     print('Process exited normally.')
     sys.exit(0)
-
 
 
 # EOF
