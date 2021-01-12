@@ -35,7 +35,7 @@ import time as tt
 
 class Processor():
 
-    def __init__(self,args):
+    def __init__(self, args):
 
 #  self.fileid is the identifier of the experiment; basically the filename
 #  without the file extension.
@@ -45,6 +45,7 @@ class Processor():
         self.fileid = args['file']
         self.bincount = args['bincount']
         self.antcount = args['antcount']
+        print(self.antcount)
         
         codepath = os.path.dirname(os.path.realpath(__file__))
         os.chdir(codepath)
@@ -127,19 +128,21 @@ class Processor():
             for i in range(4):
                 cont = np.clip((cont - 12), 0, 255)
                 cont = np.clip((cont ** 1.05), 0, 255)
-            self.frame = cv.morphologyEx(cont, cv.MORPH_OPEN, kernel, 
+            self.frame = cont.astype('float64')
+            self.frame = cv.morphologyEx(self.frame, cv.MORPH_OPEN, kernel, 
                                          iterations = 2)
             sumval = np.sum(self.frame)
             self.frame = (self.antcount / sumval) * self.frame
             imstack = np.vstack((imstack, [proc_frame(self.bincount,
                                                       self.binsize,
                                                       self.frame)]))
+            
             success, frame = self.video.read()
             pkill += 1
-            if pkill == target:
-                success = False
-                print('Process killed at {} frames. Comment out {}'.format(
-                        target, 'lines 139-142 to avoid this.'))
+            #if pkill == target:
+            #    success = False
+            #    print('Process killed at {} frames. Comment out {}'.format(
+            #            target, 'lines 139-142 to avoid this.'))
 
         return imstack
 
@@ -178,7 +181,6 @@ class Processor():
         anim = ani.ArtistAnimation(fig, ims)
         #fig.colorbar()
             
-        print('Min: {}\nMax: {}'.format(np.max(frame), np.min(frame)))
         anim.save('../data/density/{}{}/{}{}.mp4'.format(
                                 self.fileid, self.bincount,
                                 self.fileid, self.bincount),
@@ -202,7 +204,8 @@ def proc_frame(bincount, binsize, frame):
 
     return integrated
 
-def main():
+
+if __name__ == '__main__':
     start = tt.time()
 # Handle input parameters
     ap = argparse.ArgumentParser()
@@ -214,7 +217,7 @@ def main():
                 type = np.int8, help = 'Number of bins along one direction')
     ap.add_argument(
                 '-n', '--antcount', required = True,
-                type = np.int8, help = 'Number of ants in video')
+                type = np.int16, help = 'Number of ants in video')
     args = vars(ap.parse_args())
     
     proc = Processor(args)
@@ -228,5 +231,5 @@ def main():
             end - start))
     sys.exit(0)
 
-if __name__ == '__main__':
-    main()
+
+# EOF
