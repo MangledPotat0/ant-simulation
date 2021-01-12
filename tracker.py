@@ -68,7 +68,8 @@ class AntTracker:
 # Create a background substractor object and load prepared background image
         self.backsub = cv.createBackgroundSubtractorMOG2()
         bgnd = cv.imread('background.png')
-        bgnd = cv.cvtColor(bgnd,cv.COLOR_BGRA2GRAY)
+        self.bgnd = cv.cvtColor(bgnd,cv.COLOR_BGRA2GRAY)
+
 
 # Learning rate 0-1 determines how much to modify the background
 # based on changes between previous and current frame. 
@@ -76,8 +77,6 @@ class AntTracker:
 # it is set to 1, but then changed to 0 (i.e. subsequent frames
 # does not modify the background mask at all).
         empty = np.empty(np.shape(bgnd))
-        for i in range(10):
-            self.backsub.apply(bgnd, learningRate = 0)
 
 
     def check_video_capture(self):
@@ -104,21 +103,27 @@ class AntTracker:
         frame = cv.cvtColor(frame, cv.COLOR_BGRA2GRAY)
         frame = self.backsub.apply(frame, learningRate = 0)
 
-        frame = 255. - frame
-        ret, frame = cv.threshold(frame, 60, 255, cv.THRESH_TOZERO)
+        ret, frame = cv.threshold(frame, 80, 255, cv.THRESH_TOZERO)
         cont = np.clip(((255 - frame) ** 1.06), 0, 255)
-        for i in range(4):
+        for i in range(2):
             cont = np.clip((cont - 12), 0, 255)
-            cont = np.clip((cont ** 1.05), 0, 255)
-        mask = cont
+            cont = np.clip((cont ** 1.02), 0, 255)
+        mask = 255 - cont
+        ret, frame = cv.threshold(mask, 253, 255, cv.THRESH_TOZERO)
+        kernel = np.ones((3,3))
+        frame = cv.morphologyEx(frame, cv.MORPH_CLOSE, kernel, iterations = 1)
+        frame = cv.morphologyEx(frame, cv.MORPH_OPEN, kernel, iterations = 2)
+        cv.imwrite('mask.png', frame)
 
         feature = tp.locate(
-                    mask, # Input image mask
-                    27, # Estimated size of features in pixels.
+                    frame, # Input image mask
+                    31, # Estimated size of features in pixels.
                     invert = False, # Color inversion
-                    noise_size = 3, # Size of Gaussian noise kernel
-                    minmass = 15000, # Minimum optical mass of features
-                    max_iterations = 100)
+                    noise_size = 0, # Size of Gaussian noise kernel
+                    minmass = 33000, # Minimum optical mass of features
+                    max_iterations = 50,
+                    separation = 1,
+                    preprocess = True)
 
         return feature
 
@@ -126,8 +131,8 @@ class AntTracker:
     def run(self, datafile):
         count = 0
         success, frame = self.vid.read()
+        frame = self.backsub.apply(self.bgnd, learningRate = 1)
         success, frame = self.vid.read()
-        self.backsub.apply(cv.cvtColor(frame, cv.COLOR_BGRA2GRAY))
 # Dataset shape is set in a way that allows me to append rows of data
 # Rather than having to define a predetermined shape, because the code
 # Doesn't know the total length of the video input in advance.
@@ -149,10 +154,10 @@ class AntTracker:
             
             try:
                 iterr = tp.link_df_iter((old, feature), 20)
-                shoo = pd.concat(iterr)
-                print(shoo)
+                labeled = pd.concat(iterr)
+                print(labeled)
                 if (count % 2) != 0:
-                    for entry in shoo.to_numpy():
+                    for entry in labeled.to_numpy():
                         key = int(entry[-1])
                         try:
                             dset = dataset[key]
@@ -178,8 +183,8 @@ class AntTracker:
             old = feature
             
 # Premature termination condition for testing
-            #if count == 25:
-            #    success = False
+            if count == 2500:
+                success = False
 
         print('Linking ant trajectorees')
         #link = tp.link(pd.DataFrame(dataset[:,:9]), 1000,
