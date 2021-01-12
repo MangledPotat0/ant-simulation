@@ -68,8 +68,9 @@ ct = 0
 
 while success and ((not forcebreak) or (ct < depth)):
     ct += 1
-    success, frame = video.read()
-    success, frame = video.read()
+    skip = 10
+    for i in range(skip):
+        video.read()
     success, frame = video.read()
     arr.append(frame) #(np.append(arr,frame))
 
