@@ -51,28 +51,41 @@ trajpath = '../data/trajectories/'
 
 video = cv.VideoCapture('{}{}.mp4'.format(vidpath,args['file']))
 trajfile = h5py.File('{}{}data.hdf5'.format(trajpath,args['file']),'r')
-trajectory = trajfile['antdata'][1:,:2]
+trajectories = {}
+
+for key in trajfile:
+    trajectories[key] = trajfile[key][1:,:9]
 
 video.read()
 video.read()
-success, _ = video.read()
-ct = 0
+success, frame = video.read()
+ct = 2
 radius = 3
 thickness = 2
 color = [0,255,0]
 
 while success:
-    coords = tuple(trajectory[ct])
-    success, frame = video.read()
-    frame = cv.circle(
-            frame, (coords[1],coords[0]),
-            radius, color,
-            thickness )
+    for keys in trajectories:
+        try:
+            traj = trajectories[keys]
+            whichrow = np.where(traj[:,8]==ct)[0][0]
+            coords = tuple(traj[whichrow])
+            frame = cv.circle(
+                    frame, (coords[1],coords[0]),
+                    radius, color,
+                    thickness)
+        except IndexError:
+            print('Warning: trajectory {} {} {}'.format(
+                keys, 'is missing coordinates for frame', ct))
     cv.imwrite('{}/{}f{}.png'.format(
             montpath,args['file'],
             str(ct).zfill(5)
             ),
         frame
         )
+    success, frame = video.read()
     ct += 1
+
 sys.exit(0)
+
+#EOF
