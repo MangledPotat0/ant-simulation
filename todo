@@ -1,0 +1,31 @@
+################################################################################
+#                                                                              #
+#  To-do list                                                                  #
+#                                                                              #
+################################################################################
+
+git :
+    - Migrate mathematica codes into git repository
+
+plotting.py :
+    - Fix angular velocity calculation issue
+    - Fix De-clutter plotting codes
+
+tracker.py : 
+    - Better thresholding and tracking (e.g. Optical flow analysis)
+    - Figure out how to improve background subtraction
+    - Implement prediction algorithm to improve speed
+
+montage.py :
+    - Integrate video stacking into the code instead of using ffmpeg
+    - Fix the termination condition issue
+
+density.py :
+    - Pythonic red herring
+
+plot.nb : 
+    - Make separate tabs for plot generations for different data
+
+densityplot.nb :
+    - Clean up the code for comparison, also figure out why density difference
+      doesn't add up to net zero (probably bad normalization)
