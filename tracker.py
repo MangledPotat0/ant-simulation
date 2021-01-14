@@ -47,6 +47,7 @@ import pandas as pd
 #import pims
 import sys
 import trackpy as tp
+tp.linking.Linker.MAX_SUB_NET_SIZE = 100
 
 
 class AntTracker:
@@ -171,7 +172,7 @@ class AntTracker:
                         datafile.flush()
 # Using except: pass is bad practice, change it to the 'proper' way later
             except IndexError:
-                print('Noo')
+                print('Index Error; something is wrong')
                 pass
                 #dataset[count] = np.full((1, 9), np.nan, dtype = np.float32)
             
@@ -183,8 +184,8 @@ class AntTracker:
             old = feature
             
 # Premature termination condition for testing
-            if count == 2500:
-                success = False
+            #if count == 2500:
+            #    success = False
 
         print('Linking ant trajectorees')
         #link = tp.link(pd.DataFrame(dataset[:,:9]), 1000,
