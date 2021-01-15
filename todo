@@ -4,9 +4,6 @@
 #                                                                              #
 ################################################################################
 
-git :
-    - Migrate mathematica codes into git repository
-
 plotting.py :
     - Fix angular velocity calculation issue
     - Fix De-clutter plotting codes
@@ -19,9 +16,6 @@ tracker.py :
 montage.py :
     - Integrate video stacking into the code instead of using ffmpeg
     - Fix the termination condition issue
-
-density.py :
-    - Pythonic red herring
 
 plot.nb : 
     - Make separate tabs for plot generations for different data
