@@ -5,10 +5,10 @@
 #       The Code takes a .mp4 video file as input and detects features,       #
 #       builds a trajectory and saved in hdf5 format.                         #
 #                                                                             #
-#   Version 1.2.1                                                             #
+#   Version 1.2.2                                                             #
 #   Code written by Dawith Lim                                                #
 #   First written on 2019/09/18                                               #
-#   Last modified: 2021/01/11                                                 #
+#   Last modified: 2021/01/15                                                 #
 #                                                                             #
 #   Packages used                                                             #
 #   -   argparse: Argument parser, allows me to use required & optional       #
@@ -57,8 +57,8 @@ class AntTracker:
         self.exp = exp
         filepath = os.path.dirname(os.path.realpath(__file__))
         os.chdir(filepath)
-        self.vidpath = '../data/videos/'
-        self.outpath = '../data/trajectories/'
+        self.vidpath = '../../data/videos/'
+        self.outpath = '../../data/trajectories/'
         self.datafile = '{}data.hdf5'.format(exp)
 
         self.vid = cv.VideoCapture('{}{}.mp4'.format(self.vidpath, exp))

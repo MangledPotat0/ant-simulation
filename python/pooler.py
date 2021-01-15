@@ -3,9 +3,9 @@
 #   Ant trajectory pooling script for python3                                  #
 #   Code written by Dawith Lim                                                 #
 #                                                                              #
-#   Version 1.0.1.0.2.1                                                        #
+#   Version 1.0.3                                                              #
 #   First written on 2020/05/29                                                #
-#   Last Modified: 2020/06/24                                                  #
+#   Last Modified: 2021/01/15                                                  #
 #                                                                              #
 #   Packages used                                                              #
 #   - argparse: Argument parser to handle input parameter                      #
@@ -29,7 +29,7 @@ args = ap.parse_args()
 
 codepath = os.path.dirname(os.path.realpath(__file__))
 os.chdir(codepath)
-filepath = "../data/trajectories/"
+filepath = "../../data/trajectories/"
 
 timestamp = time.strftime('%Y%m%d%H')
 

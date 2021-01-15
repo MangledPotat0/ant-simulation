@@ -5,7 +5,7 @@
 #                                                                             #
 #   Version: 1.3.0                                                            #
 #   First written on: 2020/12/07                                              #
-#   Last modified: 2020/12/07                                                 #
+#   Last modified: 2021/01/15                                                 #
 #                                                                             #
 #   Description:                                                              #
 #     Crop ant tracking video using manual adjustments                        #
@@ -27,7 +27,7 @@ ap.add_argument('-v', '--video', type=str, required=True,
 
 args = vars(ap.parse_args())
 filepath = os.path.dirname(os.path.realpath(__file__))
-vidpath = '../data/videos/'
+vidpath = '../../data/videos/'
 
 try:
     vidstream = cv.VideoCapture('{}{}.mp4'.format(vidpath,args['video']))

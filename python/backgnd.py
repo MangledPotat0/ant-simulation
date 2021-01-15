@@ -3,9 +3,9 @@
 #   Ant imaging experiment background isolation code for python3              #
 #   Code written by Dawith Lim                                                #
 #                                                                             #
-#   Version: 2.1.0                                                            #
+#   Version: 2.1.1                                                            #
 #   First Written on 2020/02/13                                               #
-#   Last modified: 2020/11/29                                                 #
+#   Last modified: 2021/01/15                                                 #
 #                                                                             #
 #   Description:                                                              #
 #     Alternative (and somewhat improved) version of the old code. Instead    #
@@ -50,7 +50,7 @@ codepath = os.path.dirname(os.path.realpath(__file__))
 os.chdir(codepath)
 
 #  Set file path and import the video
-filepath = '../data/videos/'
+filepath = '../../data/videos/'
 filename = args['file']
 video = cv.VideoCapture('{}{}.mp4'.format(filepath, filename))
 

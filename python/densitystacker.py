@@ -3,9 +3,9 @@
 #   Ant density data stacker for single trajectories                           #
 #   Code written by: Dawith Lim                                                #
 #                                                                              #
-#   Version 1.2.1                                                              #
+#   Version 1.2.2                                                              #
 #   Created: 2020/08/17                                                        #
-#   Last modified: 2020/12/16                                                  #
+#   Last modified: 2021/01/15                                                  #
 #                                                                              #
 #   Description:                                                               #
 #     This code takes multiple optical density data from multiple experiments  #
@@ -28,7 +28,7 @@ arg.add_argument('-n', '--number', help = 'Total number of ants')
 arg.add_argument('-b', '--bincount', help = 'Number of bins')
 args = vars(arg.parse_args())
 
-filepath = '../data/density/'
+filepath = '../../data/density/'
 antcount = int(args['number'])
 bincount = int(args['bincount'])
 filenames = args['file']
@@ -56,7 +56,7 @@ outputfile.create_dataset('{}x{}'.format(bincount, bincount), data = pile)
 outputfile.flush()
 outputfile.close()
 try:
-    os.makedirs('../data/density/{}{}'.format('output', size))
+    os.makedirs('../../data/density/{}{}'.format('output', size))
 except:
     print('filepath exists')
 
@@ -82,7 +82,7 @@ for frame in pile:
         
 
 anim = ani.ArtistAnimation(fig, ims)
-anim.save('../data/density/{}{}/{}{}.mp4'.format(
+anim.save('../../data/density/{}{}/{}{}.mp4'.format(
                                 out, bincount,
                                 out, bincount),
           fps = 10)

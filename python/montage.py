@@ -2,7 +2,7 @@
 #   Ant labeled montage generator                                             #
 #   Code written by Dawith Lim                                                #
 #                                                                             #
-#   Version: 2.0.0                                                            #
+#   Version: 2.0.1                                                            #
 #   Packages used                                                             #
 #   -   numpy: Useful for array manipulation and general calculations         #
 #   -   pims: Image handler for trackpy                                       #
@@ -40,14 +40,14 @@ args = vars(ap.parse_args())
 codepath = os.path.dirname(os.path.realpath(__file__))
 os.chdir(codepath)
 
-montpath = '../data/montages/{}'.format(args['file'])
+montpath = '../../data/montages/{}'.format(args['file'])
 try:
     os.mkdir(montpath)
 except OSError:
     print('Failed to create new directory')
 
-vidpath = '../data/videos/'
-trajpath = '../data/trajectories/'
+vidpath = '../../data/videos/'
+trajpath = '../../data/trajectories/'
 
 video = cv.VideoCapture('{}{}.mp4'.format(vidpath,args['file']))
 trajfile = h5py.File('{}{}data.hdf5'.format(trajpath,args['file']),'r')

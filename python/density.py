@@ -3,9 +3,9 @@
 #   Density distribution plot code                                            #
 #   Code written by Dawith Lim                                                #
 #                                                                             #
-#   Version 1.2.9                                                             #
+#   Version 1.2.10                                                            #
 #   First written on 2020/06/24                                               #
-#   Last modified: 2020/12/17                                                 #
+#   Last modified: 2021/01/15                                                 #
 #                                                                             #
 #   Description:                                                              #
 #     This code divides input image stream into square bins, and integrates   #
@@ -52,8 +52,8 @@ class Processor():
         
 #  Default directory of where the video files are located, relative to the
 #  working directory (where codebase is located).
-        self.filepath = '../data/videos/'
-        self.outpath = '../data/density/'
+        self.filepath = '../../data/videos/'
+        self.outpath = '../../data/density/'
 
 #  Create a background subtractor object.
 #  The background subtractor is fed the pre-produced background image with
@@ -181,7 +181,7 @@ class Processor():
         anim = ani.ArtistAnimation(fig, ims)
         #fig.colorbar()
             
-        anim.save('../data/density/{}{}/{}{}.mp4'.format(
+        anim.save('../../data/density/{}{}/{}{}.mp4'.format(
                                 self.fileid, self.bincount,
                                 self.fileid, self.bincount),
                  fps = 10)

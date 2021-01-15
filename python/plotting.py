@@ -5,7 +5,7 @@
 #                                                                             #
 #   Version: 1.7.4                                                            #
 #   First written on 2019/11/14                                               #
-#   Last modified: 2020/11/19                                                 #
+#   Last modified: 2021/01/15                                                 #
 #                                                                             #
 #   Packages used                                                             #
 #   -   argsparse: Argument parser to handle input parameters                 #
@@ -85,11 +85,11 @@ class AntProcessor:
         temppath = os.path.dirname(os.path.realpath(__file__))
         os.chdir(temppath)
         self.filename = args['file']
-        self.filepath = "../data/trajectories/"
+        self.filepath = "../../data/trajectories/"
         self.datafile = h5py.File(
                     '{}{}data.hdf5'.format(self.filepath, self.filename),
                     'r')
-        self.figpath = "../data/plots/{}/".format(self.filename)
+        self.figpath = "../../data/plots/{}/".format(self.filename)
 
 #  Set up new figure export directory if it doesn't already exist
         try:
