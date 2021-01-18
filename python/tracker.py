@@ -114,6 +114,7 @@ class AntTracker:
         kernel = np.ones((3,3))
         frame = cv.morphologyEx(frame, cv.MORPH_CLOSE, kernel, iterations = 1)
         frame = cv.morphologyEx(frame, cv.MORPH_OPEN, kernel, iterations = 2)
+        
         cv.imwrite('mask.png', frame)
 
         feature = tp.locate(
@@ -140,19 +141,16 @@ class AntTracker:
 # This is slower than having a predetermined size, so in the future
 # It may be good for experiment code to write a params file that
 # passes the number of frames to this code. 
-        dataset = {}
+        '''dataset = {}'''
         first = True
 
         
         while success:
             feature = self.proc_frame(frame)
             feature.loc[:, 'frame'] = pd.Series(count, index = feature.index)
-            if first:
-                old = feature
-                first = False
             #print(feature.head())                
             
-            
+            ''' 
             try:
                 iterr = tp.link_df_iter((old, feature), 20)
                 labeled = pd.concat(iterr)
@@ -175,7 +173,12 @@ class AntTracker:
                 print('Index Error; something is wrong')
                 pass
                 #dataset[count] = np.full((1, 9), np.nan, dtype = np.float32)
-            
+            '''
+            if first:
+                dframe = feature
+                first = False
+            else:
+                dframe = dframe.append(feature)
             count += 1
             print('Frame {} processed.'.format(count))
 
@@ -184,9 +187,10 @@ class AntTracker:
             old = feature
             
 # Premature termination condition for testing
-            #if count == 2500:
-            #    success = False
+            if count == 2500:
+                success = False
 
+        dframe.to_hdf('test.hdf5','dump')
         print('Linking ant trajectorees')
         #link = tp.link(pd.DataFrame(dataset[:,:9]), 1000,
         #               pos_columns=[0, 1], t_column = 8)
