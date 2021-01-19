@@ -60,6 +60,7 @@ class newstore():
                                     dtype = np.float,
                                     maxshape = (None, 4),
                                     chunks = (1, 4))
+            ind = df[1].index(antid)
             entry = np.empty(4)
             entry[:2] = data[df[0]][antid]
             entry[2] = df[0]
