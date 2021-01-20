@@ -51,22 +51,23 @@ class newstore():
         data = self.reformat()
 
         for antid in df[1]:
-            try:
-                dset = self.store[str(antid)]
-            except KeyError:
+            if not str(antid) in self.store.keys():
                 dset = self.store.create_dataset(
                                     str(antid),
                                     (0, 4),
                                     dtype = np.float,
                                     maxshape = (None, 4),
                                     chunks = (1, 4))
+            else:
+                dset = self.store[str(antid)]
             ind = df[1].index(antid)
             entry = np.empty(4)
-            entry[:2] = data[df[0]][antid]
+            entry[:2] = data[df[0]][ind]
             entry[2] = df[0]
-            entry[3] = antid
+            entry[3] = ind
             dset.resize((dset.shape[0] + 1, 4))
             dset[-1,:] = entry[:]
+            self.store.flush()
 
 
     def reformat(self):
