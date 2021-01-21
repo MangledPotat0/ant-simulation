@@ -19,6 +19,7 @@ import cv2 as cv
 import h5py
 import numpy as np
 import os
+import random as rand
 import sys
 import trackpy as tp
 
@@ -62,30 +63,55 @@ success, frame = video.read()
 ct = 2
 radius = 3
 thickness = 2
-color = [0,255,0]
+color = {}
+
+plotstack = []
+ct = 0
+try:
+    os.makedirs('{}{}{}'.format(self.outpath,
+                                self.fileid, 
+                                self.bincount))
+except:
+    print('Directory already exists.\n')
+
+
+h = frame.shape[0]
+w = frame.shape[1]
+
+fps = 25.0
+fourcc = cv.VideoWriter_fourcc(*'mp4v')
+api = cv.CAP_ANY
+out = cv.VideoWriter('./file.mp4',
+                    apiPreference = api,
+                    fourcc = fourcc,
+                    fps = float(fps),
+                    frameSize = (w, h),
+                    isColor = True)
+for keys in trajectories:
+    color[keys] = (rand.randint(0,255), # B
+                   rand.randint(0,255), # G
+                   rand.randint(0,255)) # R
 
 while success:
     for keys in trajectories:
         try:
             traj = trajectories[keys]
-            whichrow = np.where(traj[:,8]==ct)[0][0]
+            whichrow = np.where(traj[:,2]==ct)[0][0]
             coords = tuple(traj[whichrow])
-            frame = cv.circle(
-                    frame, (coords[1],coords[0]),
-                    radius, color,
-                    thickness)
+            frame = cv.circle(frame, (int(coords[1]),int(coords[0])), 
+                              radius, color[keys], thickness)
         except IndexError:
-            print('Warning: trajectory {} {} {}'.format(
-                keys, 'is missing coordinates for frame', ct))
-    cv.imwrite('{}/{}f{}.png'.format(
-            montpath,args['file'],
-            str(ct).zfill(5)
-            ),
-        frame
-        )
+            #print('Warning: trajectory {} {} {}'.format(
+            #    keys, 'is missing coordinates for frame', ct))
+            pass
+
+    out.write(frame) 
     success, frame = video.read()
     ct += 1
+    if ct > 2490:
+        success = False
 
+out.release()
 sys.exit(0)
 
 #EOF
