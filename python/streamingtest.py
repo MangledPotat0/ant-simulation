@@ -1,12 +1,21 @@
 ###############################################################################
 #                                                                             #
-#   Ant project trajectory stream-linking test code                           #
+#   Ant project trajectory stream-linking code for python 3.7.4               #
+#   Code written by Dawith Lim                                                #
 #                                                                             #
-#   This is just to test the file streaming functionality for trackpy         #
-#   library to sidestep the subnet mask too large problem when processing     #
-#   the code directly. When testing is complete, this code is to be merged    #
-#   into the tracker.py code.                                                 #
+#   Version: 1.1.0                                                            #
+#   First written on: 2021/01/11                                              #
+#   Last modified: 2021/01/21                                                 #
 #                                                                             #
+#   Description:                                                              # 
+#     This script performs file streaming-based trajectory linking for the    #
+#     ant trajectory data. Its primary purpose is to avoid memory being       #
+#     overloaded during linking, and it's also separate from tracker.py to    #
+#     make sure an issue on the linking side doesn't necessitate a whole re-  #
+#     run for the trajectory detection process.                               #
+#                                                                             #
+#   Packages used:                                                            #
+#   - 
 ###############################################################################
 
 import argparse
@@ -20,11 +29,13 @@ import trackpy as tp
 # Custom interface to match the desired structure
 class newstore():
 
-    def __init__(self, mode='a', **kwargs):
+# to do- add argparse to take input argument for these properties
+    def __init__(self, mode = 'a', **kwargs):
         filepath = ''#'../../data/trajectories/'
-        expid = 'test'
-        filename = '{}{}.hdf5'.format(filepath, expid)
-
+        self.expid = 'test'
+        filename = '{}{}.hdf5'.format(filepath, self.expid)
+        
+        self.t_column = 8
         self.filename = os.path.abspath(filename)
         self.store = h5py.File(self.filename, mode)
 
@@ -33,14 +44,20 @@ class newstore():
         return self
 
 
+# Getter functions
     @property
     def t_column(self):
-        return 8#self.t_column
+        return self.t_column
     
 
-    #@property
-    #def max_Frame(self):
-    #    return max(self.frames)
+    @property
+    def expid(self):
+        return self.expid
+
+
+    @property
+    def filename(self):
+        return filename
 
 
     def put(self, df):
@@ -90,7 +107,36 @@ obje = newstore()
 
 dump = obje.reformat()
     
-for linked in tp.link_iter(dump, 3, neighbor_strategy = 'KDTree'):
+for linked in tp.link_iter(
+                dump, # Iterable data
+                3, # Search distance in float, optionally as tuple of floats
+                memory = 2, # Search depth in frames
+                predictor = None, # Prediction model function
+                adaptive_stop = None, # Float, minimum search range acceptable
+                                      # To use when subnet is too large.
+                adaptive_step = None, # Step size for reducing search range
+                                      # when subnet is too big
+                neighbor_strategy = 'KDTree',
+                    # KDTree:
+                    # BTree:
+                link_strategy = 'auto',
+                    # recursive
+                    # nonrecursive
+                    # hybrid
+                    # numba
+                    # drop
+                    # auto
+                dist_func = None,
+                    # Used only for BTree
+                to_eucl = None
+                    # Mapping function to transform position array to a
+                    # Euclidean space
+                           ):
     print(linked)
     obje.put(linked)
-print('meow')
+
+
+print('Process completed successfully. Exiting')
+sys.exit(0)
+
+# EOF
