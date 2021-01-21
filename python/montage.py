@@ -2,7 +2,10 @@
 #   Ant labeled montage generator                                             #
 #   Code written by Dawith Lim                                                #
 #                                                                             #
-#   Version: 2.0.1                                                            #
+#   Version: 2.1.0                                                            #
+#   First written on: 2020/12/20                                              #
+#   Last modified: 2021/01/20                                                 #
+#                                                                             #
 #   Packages used                                                             #
 #   -   numpy: Useful for array manipulation and general calculations         #
 #   -   pims: Image handler for trackpy                                       #
