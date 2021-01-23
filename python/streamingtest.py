@@ -57,7 +57,7 @@ class newstore():
 
     @property
     def filename(self):
-        return filename_
+        return self.filename_
 
 
     def put(self, df):
