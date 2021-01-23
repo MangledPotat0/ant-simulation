@@ -32,11 +32,11 @@ class newstore():
 # to do- add argparse to take input argument for these properties
     def __init__(self, mode = 'a', **kwargs):
         filepath = ''#'../../data/trajectories/'
-        self.expid = 'test'
+        self.expid_ = 'test'
         filename = '{}{}.hdf5'.format(filepath, self.expid)
         
-        self.t_column = 8
-        self.filename = os.path.abspath(filename)
+        self.t_column_ = 8
+        self.filename_ = os.path.abspath(filename)
         self.store = h5py.File(self.filename, mode)
 
 
@@ -47,17 +47,17 @@ class newstore():
 # Getter functions
     @property
     def t_column(self):
-        return self.t_column
+        return self.t_column_
     
 
     @property
     def expid(self):
-        return self.expid
+        return self.expid_
 
 
     @property
     def filename(self):
-        return filename
+        return filename_
 
 
     def put(self, df):
