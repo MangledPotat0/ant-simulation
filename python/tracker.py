@@ -187,8 +187,8 @@ class AntTracker:
             old = feature
             
 # Premature termination condition for testing
-            if count == 2500:
-                success = False
+            #if count == 2500:
+            #    success = False
 
         dframe.to_hdf('test.hdf5','dump')
         print('Linking ant trajectorees')
