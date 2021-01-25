@@ -110,7 +110,7 @@ class AntTracker:
             cont = np.clip((cont - 12), 0, 255)
             cont = np.clip((cont ** 1.02), 0, 255)
         mask = 255 - cont
-        ret, frame = cv.threshold(mask, 253, 255, cv.THRESH_TOZERO)
+        ret, frame = cv.threshold(mask, 200, 255, cv.THRESH_TOZERO)
         kernel = np.ones((3,3))
         frame = cv.morphologyEx(frame, cv.MORPH_CLOSE, kernel, iterations = 1)
         frame = cv.morphologyEx(frame, cv.MORPH_OPEN, kernel, iterations = 2)
