@@ -23,6 +23,7 @@ import h5py
 import os
 import numpy as np
 import pandas as pd
+import time as tt
 import trackpy as tp
 
 
@@ -90,36 +91,55 @@ class newstore():
     def reformat(self):
         data = obje.store
         coords = self.store['dump/block0_values'][:,0:2]
-        frame = self.store['dump/block1_values'][:,0]
+        frames = self.store['dump/block1_values']
+        frame = frames[:,0]
         dump = []
         for n in range(max(frame)):
-            dump.append([])
-            for m in range(len(frame)):
-                if frame[m] == n:
-                    dump[n].append(coords[m])
-            dump[n] = np.array(dump[n])
+            dump.append(coords[frames[:,0]==n])
+            #dump.append([])
+            #for m in range(len(frame)):
+            #    if frame[m] == n:
+            #        dump[n].append(coords[m])
+            dump[n] = np.array(dump[n], dtype = np.float32)
         return dump
 
 # Code from the tutorial
 
-obje = newstore()
-#with obje.store['dump/block0_values'] as dump:
+if __name__ == "__main__":
+    obje = newstore()
+    #with obje.store['dump/block0_values'] as dump:
+    start = tt.time()
+    dump = obje.reformat()
+    dumped = tt.time()
+    print('{} seconds'.format(dumped - start))
+    indexable = True
+    print(3)
+    ct = 0
 
-dump = obje.reformat()
-    
-for linked in tp.link_iter(
-                dump, # Iterable data
-                3, # Search distance in float, optionally as tuple of floats
-                memory = 2, # Search depth in frames
-                predictor = None, # Prediction model function
-                adaptive_stop = None, # Float, minimum search range acceptable
-                                      # To use when subnet is too large.
-                adaptive_step = None, # Step size for reducing search range
-                                      # when subnet is too big
+    while indexable:
+        try:
+            block = dump[500 * ct:500  * (ct + 1)]
+            ct += 1
+            for linked in tp.link_iter(
+                # Iterable data
+                block,
+                # Search distance in float, optionally as tuple of floats
+                3,
+                # Search depth in frames
+                memory = 2,
+                # Prediction model function
+                predictor = None,
+                # Float; minimum search range acceptable to use when subnet
+                # mask is too large
+                adaptive_stop = None, 
+                # Step size for reducing serach range when subnet is too big
+                adaptive_step = None,
+                # Nearest neighbor finding strategy
                 neighbor_strategy = 'KDTree',
                     # KDTree:
                     # BTree:
-                link_strategy = 'auto',
+                # Trajectory linking strategy
+                link_strategy = 'numba',
                     # recursive
                     # nonrecursive
                     # hybrid
@@ -132,11 +152,12 @@ for linked in tp.link_iter(
                     # Mapping function to transform position array to a
                     # Euclidean space
                            ):
-    print(linked)
-    obje.put(linked)
+                print(linked)
+                obje.put(linked)
+        except IndexError:
+            print('Index Error; {} / {}'.format(500 * (ct + 1), len(dump)))
 
-
-print('Process completed successfully. Exiting')
-sys.exit(0)
+    print('Process completed successfully. Exiting')
+    sys.exit(0)
 
 # EOF
