@@ -34,7 +34,7 @@ if [[ "$OSTYPE" == "linux-gnu"* ]]; then
   ## Set up ssh certificate and send it to Eos
   # ssh-keygen
   ## Set up directories
-  mkdir -p ~/antworks/temporaryAnts/data/{videos, trajectories, plots}
+  mkdir -p ~/ant/data/{videos, density, montages, trajectories, plots}
   ## Clone git repository of codebase
   git clone admin@eos.physics.purdue.edu:volume1/codecase
   ## Add $PATH variable to codebase folder
@@ -55,7 +55,7 @@ elif [[ "$OSTYPE" == "darwin"* ]]; then
   ## Set up ssh certificate and send it to Eos
   # ssh-keygen
   ## Set up directories
-  mkdir -p ~/antworks/temporaryAnts/data/{videos, trajectories, plots}
+  mkdir -p ~/ant/data/{videos, density, montages, trajectories, plots}
   ## Clone git repository of codebase
   git clone admin@eos.physics.purdue.edu:volume1/codecase
   ## Add $PATH variable to codebase folder
