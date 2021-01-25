@@ -89,25 +89,23 @@ class newstore():
 
 
     def reformat(self):
-        data = obje.store
         coords = self.store['dump/block0_values'][:,0:2]
         frames = self.store['dump/block1_values']
         frame = frames[:,0]
         dump = []
         for n in range(max(frame)):
-            dump.append(coords[frames[:,0]==n])
-            #dump.append([])
-            #for m in range(len(frame)):
-            #    if frame[m] == n:
-            #        dump[n].append(coords[m])
-            dump[n] = np.array(dump[n], dtype = np.float32)
+            dump.append(np.array(coords[frames[:,0]==n], dtype = np.float32))
         return dump
 
-# Code from the tutorial
+
+@tp.predict.predictor
+def predict(t1, particle):
+    velocity = None
+    return tp.predict.NearestVelocityPredict()
+
 
 if __name__ == "__main__":
     obje = newstore()
-    #with obje.store['dump/block0_values'] as dump:
     start = tt.time()
     dump = obje.reformat()
     dumped = tt.time()
@@ -115,11 +113,17 @@ if __name__ == "__main__":
     indexable = True
     print(3)
     ct = 0
+    chunksize = 250
 
     while indexable:
         try:
-            block = dump[500 * ct:500  * (ct + 1)]
+            block = dump[chunksize * ct:chunksize * (ct + 1)]
             ct += 1
+        except IndexError:
+            print('Index Error; {} / {}'.format(chunksize * (ct + 1), len(dump)))
+            block = dump[chinksize * ct:-1]
+            indexable - False
+        finally:
             for linked in tp.link_iter(
                 # Iterable data
                 block,
@@ -128,7 +132,7 @@ if __name__ == "__main__":
                 # Search depth in frames
                 memory = 2,
                 # Prediction model function
-                predictor = None,
+                predictor = predict(1, block),
                 # Float; minimum search range acceptable to use when subnet
                 # mask is too large
                 adaptive_stop = None, 
@@ -154,8 +158,6 @@ if __name__ == "__main__":
                            ):
                 print(linked)
                 obje.put(linked)
-        except IndexError:
-            print('Index Error; {} / {}'.format(500 * (ct + 1), len(dump)))
 
     print('Process completed successfully. Exiting')
     sys.exit(0)
