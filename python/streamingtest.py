@@ -25,6 +25,7 @@ import numpy as np
 import pandas as pd
 import time as tt
 import trackpy as tp
+import sys
 
 
 # Custom interface to match the desired structure
