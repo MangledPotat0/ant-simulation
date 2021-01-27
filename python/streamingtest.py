@@ -131,25 +131,23 @@ if __name__ == "__main__":
                 adaptive_step = None,
                 # Nearest neighbor finding strategy
                 neighbor_strategy = 'KDTree',
-                    # KDTree:
-                    # BTree:
+                # KDTree:
+                # BTree:
                 # Trajectory linking strategy
                 link_strategy = 'numba',
-                    # recursive
-                    # nonrecursive
-                    # hybrid
-                    # numba
-                    # drop
-                    # auto
+                # recursive
+                # nonrecursive
+                # hybrid
+                # numba
+                # drop
+                # auto
                 dist_func = None,
-                    # Used only for BTree
+                # Used only for BTree
                 to_eucl = None
-                    # Mapping function to transform position array to a
-                    # Euclidean space
-                           ):
-                linked = (linked[0] + ct * chunksize, linked[1])
-                #print(linked)
-                obje.put(linked, dump)
+                # Mapping function to transform position array to a
+                # Euclidean space
+                ):
+        obje.put(linked, dump)
 
     endtime = tt.time()
     print('Process completed successfully.')
