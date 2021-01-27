@@ -40,6 +40,7 @@ class newstore():
         self.t_column_ = 8
         self.filename_ = os.path.abspath(filename)
         self.store = h5py.File(self.filename, mode)
+        h5py.create_group('trajectories')
 
 
     def __enter__(self):
@@ -70,15 +71,16 @@ class newstore():
         #data = self.reformat()
 
         for antid in indices[1]:
-            if not str(antid) in self.store.keys():
-                dset = self.store.create_dataset(
+            trajset = self.store['trajectories']
+            if not str(antid) in trajset.keys():
+                dset = trajset.create_dataset(
                                     str(antid),
                                     (0, 4),
                                     dtype = np.float,
                                     maxshape = (None, 4),
                                     chunks = (1, 4))
             else:
-                dset = self.store[str(antid)]
+                dset = trajset[str(antid)]
             ind = indices[1].index(antid)
             entry = np.empty(4)
             entry[:2] = block[indices[0]][ind]
