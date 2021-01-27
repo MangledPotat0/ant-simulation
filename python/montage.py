@@ -55,6 +55,7 @@ trajpath = '../../data/trajectories/'
 
 video = cv.VideoCapture('{}{}.mp4'.format(vidpath,args['file']))
 trajfile = h5py.File('{}{}data.hdf5'.format(trajpath,args['file']),'r')
+trajset = trajfile['trajectories']
 trajectories = {}
 
 for key in trajfile:
