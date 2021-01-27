@@ -15,7 +15,7 @@
 #     run for the trajectory detection process.                               #
 #                                                                             #
 #   Packages used:                                                            #
-#   - 
+#   -                                                                         # 
 ###############################################################################
 
 import argparse
@@ -61,14 +61,14 @@ class newstore():
         return self.filename_
 
 
-    def put(self, df):
-        if len(df) == 0:
-            warnings.warn('Empty DataFrame passed to put().')
+    def put(self, indices, block):
+        if len(indices) == 0:
+            warnings.warn('Empty Indices table passed to put().')
             return
 
-        data = self.reformat()
+        #data = self.reformat()
 
-        for antid in df[1]:
+        for antid in indices[1]:
             if not str(antid) in self.store.keys():
                 dset = self.store.create_dataset(
                                     str(antid),
@@ -78,23 +78,24 @@ class newstore():
                                     chunks = (1, 4))
             else:
                 dset = self.store[str(antid)]
-            ind = df[1].index(antid)
+            ind = indices[1].index(antid)
             entry = np.empty(4)
-            entry[:2] = data[df[0]][ind]
-            entry[2] = df[0]
+            entry[:2] = block[indices[0]][ind]
+            entry[2] = indices[0]
             entry[3] = ind
             dset.resize((dset.shape[0] + 1, 4))
             dset[-1,:] = entry[:]
             self.store.flush()
 
 
-    def reformat(self):
-        coords = self.store['dump/block0_values'][:,0:2]
-        frames = self.store['dump/block1_values']
+    def reformat(self, start=0, end=-1):
+        coords = self.store['dump/block0_values'][start:end,0:2]
+        frames = self.store['dump/block1_values'][start:end]
         frame = frames[:,0]
         dump = []
         for n in range(max(frame)):
-            dump.append(np.array(coords[frames[:,0]==n], dtype = np.float32))
+            dump.append(np.array(coords[frames[:,0] == n],
+                                 dtype = np.float32))
         return dump
 
 
@@ -106,33 +107,35 @@ def predict(t1, particle):
 
 if __name__ == "__main__":
     obje = newstore()
-    start = tt.time()
-    dump = obje.reformat()
-    dumped = tt.time()
-    print('{} seconds'.format(dumped - start))
-    indexable = True
-    print(3)
+    chunksize = 18000
     ct = 0
-    chunksize = 250
+    dump = obje.reformat()
+    indexable = True
+    loopstart = tt.time()
 
-    while indexable:
+    while ct < 1:
+        #start = ct * chunksize
         try:
-            block = dump[chunksize * ct:chunksize * (ct + 1)]
-            ct += 1
+            pass
+            #end = (ct + 1) * chunksize
+            #block = obje.reformat(start, end)
         except IndexError:
-            print('Index Error; {} / {}'.format(chunksize * (ct + 1), len(dump)))
-            block = dump[chinksize * ct:-1]
-            indexable - False
+            print('bee')
+            #print('Index Error; reached end of file ({}/{})'.format(end,
+            #                                                        len(dump)))
+            #end = -1
+            #block = obje.reformat(start, end)
+            #indexable - False
         finally:
             for linked in tp.link_iter(
                 # Iterable data
-                block,
+                dump,
                 # Search distance in float, optionally as tuple of floats
                 3,
                 # Search depth in frames
                 memory = 2,
                 # Prediction model function
-                predictor = predict(1, block),
+                #predictor = predict(1, block),
                 # Float; minimum search range acceptable to use when subnet
                 # mask is too large
                 adaptive_stop = None, 
@@ -156,8 +159,10 @@ if __name__ == "__main__":
                     # Mapping function to transform position array to a
                     # Euclidean space
                            ):
-                print(linked)
-                obje.put(linked)
+                linked = (linked[0] + ct * chunksize, linked[1])
+                #print(linked)
+                obje.put(linked, dump)
+            ct += 1
 
     print('Process completed successfully. Exiting')
     sys.exit(0)
