@@ -91,9 +91,9 @@ class newstore():
             self.store.flush()
 
 
-    def reformat(self, start=0, end=-1):
-        coords = self.store['dump/block0_values'][start:end,0:2]
-        frames = self.store['dump/block1_values'][start:end]
+    def reformat(self):
+        coords = self.store['dump/block0_values'][:,0:2]
+        frames = self.store['dump/block1_values']
         frame = frames[:,0]
         dump = []
         for n in range(max(frame)):
@@ -109,28 +109,13 @@ def predict(t1, particle):
 
 
 if __name__ == "__main__":
+    starttime = tt.time()
     obje = newstore()
-    chunksize = 18000
-    ct = 0
     dump = obje.reformat()
     indexable = True
     loopstart = tt.time()
 
-    while ct < 1:
-        #start = ct * chunksize
-        try:
-            pass
-            #end = (ct + 1) * chunksize
-            #block = obje.reformat(start, end)
-        except IndexError:
-            print('bee')
-            #print('Index Error; reached end of file ({}/{})'.format(end,
-            #                                                        len(dump)))
-            #end = -1
-            #block = obje.reformat(start, end)
-            #indexable - False
-        finally:
-            for linked in tp.link_iter(
+    for linked in tp.link_iter(
                 # Iterable data
                 dump,
                 # Search distance in float, optionally as tuple of floats
@@ -165,9 +150,10 @@ if __name__ == "__main__":
                 linked = (linked[0] + ct * chunksize, linked[1])
                 #print(linked)
                 obje.put(linked, dump)
-            ct += 1
 
-    print('Process completed successfully. Exiting')
+    endtime = tt.time()
+    print('Process completed successfully.')
+    print('Total runtime: {}.\nExiting.'.format(endtime - starttime))
     sys.exit(0)
 
 # EOF
