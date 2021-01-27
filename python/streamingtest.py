@@ -40,6 +40,7 @@ class newstore():
         self.t_column_ = 8
         self.filename_ = os.path.abspath(filename)
         self.store = h5py.File(self.filename, mode)
+        del self.store['trajectories']
         self.store.create_group('trajectories')
 
 
