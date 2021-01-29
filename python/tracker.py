@@ -3,7 +3,7 @@
 #   Ant tracking code for python3                                             #
 #                                                                             #
 #       The Code takes a .mp4 video file as input and detects features,       #
-#       builds a trajectory and saved in hdf5 format.                         #
+#       and saves all detections into hdf5 format.                            #
 #                                                                             #
 #   Version 1.2.2                                                             #
 #   Code written by Dawith Lim                                                #
@@ -21,7 +21,6 @@
 #   -   os: Used for directory navigation/creation.                           #
 #   -   pandas: Scientific data formatting package. Dependency for trackpy    #
 #               code because that's how it saves the data.                    #
-#   -   pims: Image handler for trackpy                                       #
 #   -   sys: Used for the sys.exit() to terminate the code                    #
 #   -   trackpy: Soft-matter particle tracker; main module that handles       #
 #                tracking.                                                    #
@@ -44,10 +43,8 @@ import numba
 import numpy as np
 import os
 import pandas as pd
-#import pims
 import sys
 import trackpy as tp
-tp.linking.Linker.MAX_SUB_NET_SIZE = 100
 
 
 class AntTracker:
@@ -190,7 +187,7 @@ class AntTracker:
             #if count == 2500:
             #    success = False
 
-        dframe.to_hdf('test.hdf5','dump')
+        dframe.to_hdf('{}{}.hdf5'.format(self.outpath,self.datafile),'dump')
         print('Linking ant trajectorees')
         #link = tp.link(pd.DataFrame(dataset[:,:9]), 1000,
         #               pos_columns=[0, 1], t_column = 8)
@@ -215,6 +212,7 @@ def spawn_dataset(key):
 if __name__ == '__main__':
 # Enable numba JIT compiler for trackpy
     tp.enable_numba()
+    tp.linking.Linker.MAX_SUB_NET_SIZE = 100
 
 # Create an argument parser object
     ap = argparse.ArgumentParser()
@@ -228,11 +226,10 @@ if __name__ == '__main__':
     datafile = h5py.File('{}{}data.hdf5'.format(at.outpath,args['file']), 'w')
 
     print('Initialized.')
-
     print('Running ant tracker')
     at.run(datafile)
-    print('Process exited normally.')
-    sys.exit(0)
 
+    print('Process completed. Exiting')
+    sys.exit(0)
 
 # EOF
