@@ -1,5 +1,17 @@
 ################################################################################
 #                                                                              #
+#   Trajectory defragmentation code                                            #
+#                                                                              #
+#     Takes endpoints of each trajectory and attempts to stitch them into      #
+#     larger trajectories. The unstitchable leftovers will be considered as    #
+#     artifacts and be removed by sifter                                       #
+#                                                                              #
+#   Code written by: Dawith Lim                                                #
+#   Version: 0.8.0                                                             #
+#   File created: 2021/01/29                                                   #
+#   Last modified: 2021/01/29                                                  #
+#                                                                              #
+#   Packages used:                                                             #
 #                                                                              #
 ################################################################################
 
@@ -26,12 +38,30 @@ def loaddata(filepath, fname):
     return data
 
 
-def defragment():
+def fetch_breaks(data):
+# Creates a list that stores the beginning and endpoint of a trajectory
+    breaks = []
+    for dset in data:
+        start = dset[0,:]
+        end = dset[-1,:]
+        breaks.append(start)
+        if start == end:
+            pass
+        elif start =! end:
+            breaks.append(end)
+
+    return breaks
+
+
+def defragment(data):
+
+    breaks = fetch_breaks(data)
+    print(breaks)
 
     return
 
 
-def sift():
+def sift(data):
 
     return
 
@@ -45,8 +75,8 @@ if __name__ == '__main__':
     filepath = setpath(fname)
     data = loaddata(filepath, fname)
 
-    defragment()
-    sift()
+    defragment(data)
+    sift(data)
 
     sys.exit(0)
 
