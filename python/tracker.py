@@ -1,30 +1,30 @@
-###############################################################################
-#                                                                             #
-#   Ant tracking code for python3                                             #
-#                                                                             #
-#       The Code takes a .mp4 video file as input and detects features,       #
-#       and saves all detections into hdf5 format.                            #
-#                                                                             #
-#   Version 1.2.2                                                             #
-#   Code written by Dawith Lim                                                #
-#   First written on 2019/09/18                                               #
-#   Last modified: 2021/01/15                                                 #
-#                                                                             #
-#   Packages used                                                             #
-#   -   argparse: Argument parser, allows me to use required & optional       #
-#                 inputs with various flags                                   #
-#   -   cv2: OpenCV module, used for image type conversion                    #
-#   -   matplotlib: Plotting. Required for montage frame generation           #
-#   -   numba: LLVM Machine code JIT compiler for numpy operations. This      #
-#              is supposedly faster than regular compilation for numpy.       #
-#   -   numpy: Useful for array manipulation and general calculations         #
-#   -   os: Used for directory navigation/creation.                           #
-#   -   pandas: Scientific data formatting package. Dependency for trackpy    #
-#               code because that's how it saves the data.                    #
-#   -   sys: Used for the sys.exit() to terminate the code                    #
-#   -   trackpy: Soft-matter particle tracker; main module that handles       #
-#                tracking.                                                    #
-###############################################################################
+################################################################################
+#                                                                              #
+#   Ant tracking code for python3                                              #
+#                                                                              #
+#       The Code takes a .mp4 video file as input and detects features,        #
+#       and saves all detections into hdf5 format.                             #
+#                                                                              #
+#   Version 1.2.2                                                              #
+#   Code written by Dawith Lim                                                 #
+#   First written on 2019/09/18                                                #
+#   Last modified: 2021/01/15                                                  #
+#                                                                              #
+#   Packages used                                                              #
+#   -   argparse: Argument parser, allows me to use required & optional        #
+#                 inputs with various flags                                    #
+#   -   cv2: OpenCV module, used for image type conversion                     #
+#   -   matplotlib: Plotting. Required for montage frame generation            #
+#   -   numba: LLVM Machine code JIT compiler for numpy operations. This       #
+#              is supposedly faster than regular compilation for numpy.        #
+#   -   numpy: Useful for array manipulation and general calculations          #
+#   -   os: Used for directory navigation/creation.                            #
+#   -   pandas: Scientific data formatting package. Dependency for trackpy     #
+#               code because that's how it saves the data.                     #
+#   -   sys: Used for the sys.exit() to terminate the code                     #
+#   -   trackpy: Soft-matter particle tracker; main module that handles        #
+#                tracking.                                                     #
+################################################################################
 
 
 import argparse
