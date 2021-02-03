@@ -5,7 +5,7 @@
 #       The Code takes a .mp4 video file as input and detects features,        #
 #       and saves all detections into hdf5 format.                             #
 #                                                                              #
-#   Version 1.2.2                                                              #
+#   Version 1.2.3                                                              #
 #   Code written by Dawith Lim                                                 #
 #   First written on 2019/09/18                                                #
 #   Last modified: 2021/01/15                                                  #
@@ -56,7 +56,9 @@ class AntTracker:
         os.chdir(filepath)
         self.vidpath = '../../data/videos/'
         self.outpath = '../../data/trajectories/'
-        self.datafile = '{}data.hdf5'.format(exp)
+        self.filename = '{}data.hdf5'.format(exp)
+        #self.datafile = h5py.File(self.filename, 'w')
+
 
         self.vid = cv.VideoCapture('{}{}.mp4'.format(self.vidpath, exp))
         self.check_video_capture()
@@ -68,6 +70,25 @@ class AntTracker:
         bgnd = cv.imread('background.png')
         self.bgnd = cv.cvtColor(bgnd,cv.COLOR_BGRA2GRAY)
 
+
+# Parameters
+
+# Background subtraction parameters
+        self.tozero_thresh1 = 80
+        self.tozero_thresh2 = 190
+        self.exponent = 1.03
+        self.iter = 2
+        self.clipval = 12
+
+# Detection parameters
+        self.antsize = 31
+        self.minmass = 33000
+
+# Auxiliary parameters for testing only
+        self.skip = True
+        self.skiplength = 1000
+        self.test = True
+        self.testlength = 1000
 
 # Learning rate 0-1 determines how much to modify the background
 # based on changes between previous and current frame. 
@@ -97,17 +118,21 @@ class AntTracker:
 
 
     def proc_frame(self, frame):
-# Main routine; convert to greyscale, subtract background, and then detect feature.
+# Main routine; convert to greyscale, subtract background, and then detect
+# features.
+
         frame = cv.cvtColor(frame, cv.COLOR_BGRA2GRAY)
         frame = self.backsub.apply(frame, learningRate = 0)
 
-        ret, frame = cv.threshold(frame, 80, 255, cv.THRESH_TOZERO)
-        cont = np.clip(((255 - frame) ** 1.06), 0, 255)
-        for i in range(2):
-            cont = np.clip((cont - 12), 0, 255)
-            cont = np.clip((cont ** 1.02), 0, 255)
+        ret, frame = cv.threshold(frame, self.tozero_thresh1,
+                                  255, cv.THRESH_TOZERO)
+        cont = np.clip(((255 - frame) ** self.exponent), 0, 255)
+        for i in range(self.iter):
+            cont = np.clip((cont - self.clipval), 0, 255)
+            cont = np.clip((cont ** self.exponent), 0, 255)
         mask = 255 - cont
-        ret, frame = cv.threshold(mask, 200, 255, cv.THRESH_TOZERO)
+        ret, frame = cv.threshold(mask, self.tozero_thresh2,
+                                  255, cv.THRESH_TOZERO)
         kernel = np.ones((3,3))
         frame = cv.morphologyEx(frame, cv.MORPH_CLOSE, kernel, iterations = 1)
         frame = cv.morphologyEx(frame, cv.MORPH_OPEN, kernel, iterations = 2)
@@ -116,10 +141,10 @@ class AntTracker:
 
         feature = tp.locate(
                     frame, # Input image mask
-                    31, # Estimated size of features in pixels.
+                    self.antsize, # Estimated size of features in pixels.
                     invert = False, # Color inversion
                     noise_size = 0, # Size of Gaussian noise kernel
-                    minmass = 33000, # Minimum optical mass of features
+                    minmass = self.minmass, # Minimum optical mass of features
                     max_iterations = 50,
                     separation = 1,
                     preprocess = True)
@@ -127,8 +152,13 @@ class AntTracker:
         return feature
 
 
-    def run(self, datafile):
+    def run(self):
         count = 0
+        while self.skip and count < self.skiplength:
+            success, frame = self.vid.read()
+            count += 1
+        count = 0
+
         success, frame = self.vid.read()
         frame = self.backsub.apply(self.bgnd, learningRate = 1)
         success, frame = self.vid.read()
@@ -179,24 +209,24 @@ class AntTracker:
             count += 1
             print('Frame {} processed.'.format(count))
 
-            datafile.flush()
+            #datafile.flush()
             success, frame = self.vid.read()
             old = feature
             
 # Premature termination condition for testing
-            #if count == 2500:
-            #    success = False
+            if (self.test) and (count == self.testlength):
+                success = False
 
-        dframe.to_hdf('{}{}.hdf5'.format(self.outpath,self.datafile),'dump')
+        dframe.to_hdf('{}{}'.format(self.outpath,self.filename),'raw')
         print('Linking ant trajectorees')
         #link = tp.link(pd.DataFrame(dataset[:,:9]), 1000,
         #               pos_columns=[0, 1], t_column = 8)
         #dataset[:] = link[:]
-        for key in datafile:
-            dset = datafile[key]
-            dset.resize((dset.shape[0] - 1, 10))
-        datafile.flush()
-        datafile.close()
+        #for key in datafile:
+        #    dset = datafile[key]
+        #    dset.resize((dset.shape[0] - 1, 10))
+        #datafile.flush()
+        #datafile.close()
 
 
 def spawn_dataset(key):
@@ -223,11 +253,10 @@ if __name__ == '__main__':
    
     at = AntTracker(args['file'])
 # Open a data file to save the trajectory
-    datafile = h5py.File('{}{}data.hdf5'.format(at.outpath,args['file']), 'w')
 
     print('Initialized.')
     print('Running ant tracker')
-    at.run(datafile)
+    at.run()
 
     print('Process completed. Exiting')
     sys.exit(0)
