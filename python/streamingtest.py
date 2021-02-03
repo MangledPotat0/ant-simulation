@@ -93,8 +93,8 @@ class newstore():
 
 
     def reformat(self):
-        coords = self.store['dump/block0_values'][:,0:2]
-        frames = self.store['dump/block1_values']
+        coords = self.store['raw/block0_values'][:,0:2]
+        frames = self.store['raw/block1_values']
         frame = frames[:,0]
         dump = []
         for n in range(max(frame)):
