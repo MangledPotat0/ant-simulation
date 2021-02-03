@@ -5,10 +5,10 @@
 #       The Code takes a .mp4 video file as input and detects features,        #
 #       and saves all detections into hdf5 format.                             #
 #                                                                              #
-#   Version 1.2.3                                                              #
+#   Version 1.2.4                                                              #
 #   Code written by Dawith Lim                                                 #
 #   First written on 2019/09/18                                                #
-#   Last modified: 2021/01/15                                                  #
+#   Last modified: 2021/02/03                                                  #
 #                                                                              #
 #   Packages used                                                              #
 #   -   argparse: Argument parser, allows me to use required & optional        #
@@ -217,16 +217,9 @@ class AntTracker:
             if (self.test) and (count == self.testlength):
                 success = False
 
+# Dump the data in the unmodified, original structure
         dframe.to_hdf('{}{}'.format(self.outpath,self.filename),'raw')
         print('Linking ant trajectorees')
-        #link = tp.link(pd.DataFrame(dataset[:,:9]), 1000,
-        #               pos_columns=[0, 1], t_column = 8)
-        #dataset[:] = link[:]
-        #for key in datafile:
-        #    dset = datafile[key]
-        #    dset.resize((dset.shape[0] - 1, 10))
-        #datafile.flush()
-        #datafile.close()
 
 
 def spawn_dataset(key):
