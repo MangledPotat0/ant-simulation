@@ -61,10 +61,10 @@ trajectories = {}
 for key in trajset:
     trajectories[key] = trajset[key][1:,:9]
 
-video.read()
-video.read()
-success, frame = video.read()
-ct = 2
+offset = 1000 + 2
+ct = 0
+while ct < offset:
+    success, frame = video.read()
 radius = 3
 thickness = 2
 color = {}
