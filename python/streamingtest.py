@@ -40,8 +40,13 @@ class newstore():
         self.t_column_ = 8
         self.filename_ = os.path.abspath(filename)
         self.store = h5py.File(self.filename, mode)
-        del self.store['trajectories']
-        self.store.create_group('trajectories')
+        try:
+            del self.store['trajectories']
+            print('Removing data group {}/trajectories'.format(self.expid))
+        except KeyError:
+            print('Creating data group {}/trajectories'.format(self.expid))
+        finally:
+            self.store.create_group('trajectories')
 
 
     def __enter__(self):
@@ -110,6 +115,7 @@ def predict(t1, particle):
 
 
 if __name__ == "__main__":
+    search_range = 5
     starttime = tt.time()
     obje = newstore()
     dump = obje.reformat()
@@ -120,9 +126,9 @@ if __name__ == "__main__":
                 # Iterable data
                 dump,
                 # Search distance in float, optionally as tuple of floats
-                3,
+                search_range,
                 # Search depth in frames
-                memory = 2,
+                memory = 3,
                 # Prediction model function
                 #predictor = predict(1, block),
                 # Float; minimum search range acceptable to use when subnet
@@ -148,6 +154,7 @@ if __name__ == "__main__":
                 # Mapping function to transform position array to a
                 # Euclidean space
                 ):
+        print(linked)
         obje.put(linked, dump)
 
     endtime = tt.time()
@@ -155,4 +162,80 @@ if __name__ == "__main__":
     print('Total runtime: {}.\nExiting.'.format(endtime - starttime))
     sys.exit(0)
 
+
+# WORK IN PROGRESS
+
+
+class streamlinker():
+
+    def __init__():
+        super().__init__()
+        params = super.params
+        self.filepath = params['filepath']
+        self.expid = params['filepath']
+        self.filename = params['outputfilename']
+        self.store = h5py.File(self.filename, mode)
+        try:
+            self.store['trajectories']
+            del self.store['trajectories']
+            print('Warning: Data store "trajectory" was overwritten.')
+        except KeyError:
+            pass
+        finally:
+            self.store.create_group('trajectories')
+
+        print('Init')
+
+    def run(self):
+        super().run(self.args)
+
+
+# Getter functions
+    @property
+    def get_expid(self):
+        return self.expid
+
+
+    @property
+    def get_filename(self):
+        return self.filename
+
+
+    def put(self, indices, block):
+        if len(indices) == 0:
+            warnings.warn('Empty Indices table passed to put().')
+            return
+
+        #data = self.reformat()
+
+        for antid in indices[1]:
+            trajset = self.store['trajectories']
+            if not str(antid) in trajset.keys():
+                dset = trajset.create_dataset(
+                                    str(antid),
+                                    (0, 4),
+                                    dtype = np.float,
+                                    maxshape = (None, 4),
+                                    chunks = (1, 4))
+            else:
+                dset = trajset[str(antid)]
+            ind = indices[1].index(antid)
+            entry = np.empty(4)
+            entry[:2] = block[indices[0]][ind]
+            entry[2] = indices[0]
+            entry[3] = ind
+            dset.resize((dset.shape[0] + 1, 4))
+            dset[-1,:] = entry[:]
+            self.store.flush()
+
+
+    def reformat(self):
+        coords = self.store['raw/block0_values'][:,0:2]
+        frames = self.store['raw/block1_values']
+        frame = frames[:,0]
+        dump = []
+        for n in range(max(frame)):
+            dump.append(np.array(coords[frames[:,0] == n],
+                                 dtype = np.float32))
+        return dump
 # EOF
