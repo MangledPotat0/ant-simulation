@@ -62,9 +62,11 @@ for key in trajset:
     trajectories[key] = trajset[key][1:,:9]
 
 offset = 1000 + 2
+length = 1000
 ct = 0
 while ct < offset:
     success, frame = video.read()
+    ct += 1
 radius = 3
 thickness = 2
 color = {}
@@ -112,7 +114,7 @@ while success:
     out.write(frame) 
     success, frame = video.read()
     ct += 1
-    if ct > 2490:
+    if ct > length:
         success = False
 
 out.release()
