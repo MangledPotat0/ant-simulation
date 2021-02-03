@@ -58,8 +58,8 @@ trajfile = h5py.File('{}{}data.hdf5'.format(trajpath,args['file']),'r')
 trajset = trajfile['trajectories']
 trajectories = {}
 
-for key in trajfile:
-    trajectories[key] = trajfile[key][1:,:9]
+for key in trajset:
+    trajectories[key] = trajset[key][1:,:9]
 
 video.read()
 video.read()
