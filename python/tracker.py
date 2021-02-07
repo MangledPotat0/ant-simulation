@@ -74,11 +74,11 @@ class AntTracker:
 # Parameters
 
 # Background subtraction parameters
-        self.tozero_thresh1 = 80
-        self.tozero_thresh2 = 190
-        self.exponent = 1.03
-        self.iter = 2
-        self.clipval = 12
+        self.tozero_thresh1 = 64
+        self.tozero_thresh2 = 200
+        self.exponent = 1.02
+        self.iter = 12
+        self.clipval = 20
 
 # Detection parameters
         self.antsize = 31
@@ -86,9 +86,9 @@ class AntTracker:
 
 # Auxiliary parameters for testing only
         self.skip = True
-        self.skiplength = 1000
+        self.skiplength = 0
         self.test = True
-        self.testlength = 1000
+        self.testlength = 2
 
 # Learning rate 0-1 determines how much to modify the background
 # based on changes between previous and current frame. 
@@ -122,14 +122,16 @@ class AntTracker:
 # features.
 
         frame = cv.cvtColor(frame, cv.COLOR_BGRA2GRAY)
-        frame = self.backsub.apply(frame, learningRate = 0)
+        #frame = self.backsub.apply(frame, learningRate = 0)
 
-        ret, frame = cv.threshold(frame, self.tozero_thresh1,
+        ret, frame = cv.threshold(255 - frame, self.tozero_thresh1,
                                   255, cv.THRESH_TOZERO)
+        cv.imwrite('musk.png', frame)
         cont = np.clip(((255 - frame) ** self.exponent), 0, 255)
         for i in range(self.iter):
             cont = np.clip((cont - self.clipval), 0, 255)
             cont = np.clip((cont ** self.exponent), 0, 255)
+        cv.imwrite('mask.png', cont)
         mask = 255 - cont
         ret, frame = cv.threshold(mask, self.tozero_thresh2,
                                   255, cv.THRESH_TOZERO)
@@ -137,7 +139,6 @@ class AntTracker:
         frame = cv.morphologyEx(frame, cv.MORPH_CLOSE, kernel, iterations = 1)
         frame = cv.morphologyEx(frame, cv.MORPH_OPEN, kernel, iterations = 2)
         
-        cv.imwrite('mask.png', frame)
 
         feature = tp.locate(
                     frame, # Input image mask
@@ -218,7 +219,8 @@ class AntTracker:
                 success = False
 
 # Dump the data in the unmodified, original structure
-        dframe.to_hdf('{}{}'.format(self.outpath,self.filename),'raw')
+        dframe.to_hdf('{}{}'.format(self.outpath, self.filename),'raw',
+                      mode = 'w')
         print('Linking ant trajectorees')
 
 

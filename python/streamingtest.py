@@ -115,7 +115,9 @@ def predict(t1, particle):
 
 
 if __name__ == "__main__":
-    search_range = 5
+    tp.linking.Linker.MAX_SUB_NET_SIZE = 100
+    search_range = 8
+    memory = 2
     starttime = tt.time()
     obje = newstore()
     dump = obje.reformat()
@@ -128,14 +130,14 @@ if __name__ == "__main__":
                 # Search distance in float, optionally as tuple of floats
                 search_range,
                 # Search depth in frames
-                memory = 3,
+                memory = 4,
                 # Prediction model function
                 #predictor = predict(1, block),
                 # Float; minimum search range acceptable to use when subnet
                 # mask is too large
-                adaptive_stop = None, 
+                adaptive_stop = 5, 
                 # Step size for reducing serach range when subnet is too big
-                adaptive_step = None,
+                adaptive_step = 0.1,
                 # Nearest neighbor finding strategy
                 neighbor_strategy = 'KDTree',
                 # KDTree:
@@ -154,7 +156,6 @@ if __name__ == "__main__":
                 # Mapping function to transform position array to a
                 # Euclidean space
                 ):
-        print(linked)
         obje.put(linked, dump)
 
     endtime = tt.time()
