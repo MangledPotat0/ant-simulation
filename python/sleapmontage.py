@@ -58,7 +58,7 @@ trajfile = h5py.File('{}{}.hdf5'.format(trajpath,args['file']),'r')
 trajectories = {}
 
 for key in trajfile:
-    trajectories[key] = trajfile[key][:,1,:]
+    trajectories[key] = trajfile[key]
 
 offset = 1
 length = 999990
@@ -101,13 +101,20 @@ while success:
     for keys in trajectories:
         try:
             traj = trajectories[keys]
-            whichrow = np.where(traj[:,2]==ct)[0][0]
-            coords = tuple(traj[whichrow])
-            frame = cv.circle(frame, (int(coords[1]),int(coords[0])), 
+            coords = tuple(traj[:,0,ct])
+            frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
+                              radius, color[keys], thickness)
+            coords = tuple(traj[:,1,ct])
+            frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
+                              radius, color[keys], thickness)
+            coords = tuple(traj[:,2,ct])
+            frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
                               radius, color[keys], thickness)
         except IndexError:
-            #print('Warning: trajectory {} {} {}'.format(
-            #    keys, 'is missing coordinates for frame', ct))
+            print('foo')
+            pass
+        except ValueError:
+            print('Missing body segment')
             pass
 
     out.write(frame) 
