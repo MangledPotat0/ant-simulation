@@ -30,20 +30,20 @@ import time
 
 class lattice_ant_model():
 
-    def __init__():
+    def __init__(self):
 
-        with json.load(open('lattice_ant_model_params.json', 'r+')) as param:
-            # These parameters are for setting up the lattice and the ants.
-            self.latticesize_ = param['lattice_size']
-            self.nspecies_ = param['n_species']
-            self.mcount_ = params['m_count']
-            self.interaction_ = params['interaction_table']
-            self.lengthscale_ = params['length_scale']
+        param = json.load(open('lattice_ant_model_params.json', 'r+'))
+        # These parameters are for setting up the lattice and the ants.
+        self.latticesize_ = param['lattice_size']
+        self.nspecies_ = param['n_species']
+        self.mcount_ = param['m_count']
+        self.interaction_ = param['interaction_table']
+        self.lengthscale_ = param['length_scale']
 
-            # These parameters are for the metropolis algorithm used for MCMC.
-            self.threshold_ = params['threshold']
-            self.energyscale_ = params['energyscale']
-            self.temperature_ = params['temperature']
+        # These parameters are for the metropolis algorithm used for MCMC.
+        self.threshold_ = param['threshold']
+        self.energyscale_ = param['energy_scale']
+        self.temperature_ = param['temperature']
 
         # This block checks that the input parameters are consistent with
         # each other and with what is physically sensible.
@@ -111,27 +111,107 @@ class lattice_ant_model():
 
         return damparray
 
+    
+    def lattice_force(self):
+        latforce = np.matmul(self.nspecies, self.interaction, self.nspecies)
+        return latforce
+
 
     def compute_energy(self):
-        energy = np.sum(np.dot(self.interaction, self.damparray))
+        latfoce = self.lattice_force()
+        energy = np.sum(np.dot(latforce, self.damparray))
         return energy
 
 
     def compute_dE(self, start, end):
-        dE = np.sum(np.dot((damping[:, end] - damping[x,start]), vecn[:,i])
-                    + 2jj[l,l] * (1 - damping[end, start]))
+        dE = np.sum(np.dot((damping[:, end] - damping[x,start]),
+                    self.nspecies[:,i])
+                    + 2 * self.interaction[l,l] * (1 - damping[end, start]))
         return dE
 
     def run(self, tt):
-        ct = 0
-        while ct < tt:
+        ct = 1
+        energy = np.zeros(tt+1)
+        energy[0] = self.compute_energy()
+        lattice = self.populate_lattice()
+        while ct < (tt + 1):
             ct += 1
-            anttype = random.randint((1,n))
-            flattened = np.flatten(self.lattice)
-        return
+
+            origin, destination = self.generate_step()
+            valid = self.validate_step(origin, destination)
+
+            if valid:
+                lattice[anttype, origin] -= 1
+                lattice[anttype, destination] +=1
+                energy[ct] = energy[ct-1] + dE
+            else:
+                pass
+
+    
+    def populate_lattice(self):
+        lattice = np.array((self.nspecies, 
+                            self.latticesize,
+                            self.latticesize))
+        spp = 0
+        for counts in self.mcounts:
+            remaining = count
+            while remaining < 0:
+                location = [random.randint(self.latticesize),
+                            random.randint(self.latticesize)]
+                lattice[spp, location] += 1
+            spp += 1
+
+        return lattice
+
+
+    def generate_step(self, lattice):
+        # Pick a random species (out of n) and then a random ant (out of m)
+        anttype = random.randint(self.nspecies)
+        flattened = np.flatten(self.lattice)
+        pick = random.randint(self.mcount[n])
+        position = 0
+            
+        # Iterate through the lattice points to figure out which ant we
+        # just picked.
+        while pick > flattened[position]:
+            pick -= flattened[position]
+            position +=1
+        
+        if flattened[position] < 1 & position < l:
+            position += 1
+
+        origin = np.array([math.floor(position / self.latticesize),
+                           position % self.latticesize])
+        
+        moves = np.array([[1, 0], [0, 1], [-1, 0], [0, -1]])
+        reroll = True
+        while reroll:
+            step = random.randint(4)
+            destination = origin + step
+            # Ensures 'destination' is still inside the lattice
+            try:
+                reroll = (lattice[anttype, destination] 
+                          - lattice[anttype, abs(destination)])
+            except IndexError:
+                reroll = False
+
+        return anttype, origin, destination
+
+
+    def validate_step(self, origin, destination):
+        dE = self.compute_dE(origin, destination)
+        if dE > 0:
+            return True
+        elif math.exp(-dE / self.temperature) > random.random(self.threshold):
+            return True
+        else:
+            return False
+
 
 if __name__ == '__main__':
     print('Process completed successfully. Exiting.')
+    sim = lattice_ant_model()
+    sim.run(1)
     sys.exit(0)
 
 
