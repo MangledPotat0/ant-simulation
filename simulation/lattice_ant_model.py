@@ -28,7 +28,7 @@ import sys
 import time
 
 
-class lattice_ant_model():
+class lattice_ant_model:
 
     def __init__(self):
 
@@ -36,8 +36,8 @@ class lattice_ant_model():
         # These parameters are for setting up the lattice and the ants.
         self.latticesize_ = param['lattice_size']
         self.nspecies_ = param['n_species']
-        self.mcount_ = param['m_count']
-        self.interaction_ = param['interaction_table']
+        self.mcount_ = np.array(param['m_count'])
+        self.interaction_ = np.array(param['interaction_table'])
         self.lengthscale_ = param['length_scale']
 
         # These parameters are for the metropolis algorithm used for MCMC.
@@ -77,6 +77,7 @@ class lattice_ant_model():
         return self.latticesize_
 
     def nspecies(self):
+        print(self.nspecies_)
         return self.nspecies_
 
     def mcount(self):
@@ -112,8 +113,10 @@ class lattice_ant_model():
         return damparray
 
     
-    def lattice_force(self):
-        latforce = np.matmul(self.nspecies, self.interaction, self.nspecies)
+    def lattice_force(self, lattice):
+        nspecies_tp = np.transpose(self.nspecies)
+        temp = np.matmul(self.nspecies, self.interaction)
+        latforce = np.matmul(temp, self.nspecies)
         return latforce
 
 
