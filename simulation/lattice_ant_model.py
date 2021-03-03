@@ -4,7 +4,7 @@
 #   Code written by: Dawith Lim                                               #
 #                                                                             #
 #   Created: 2021/03/04  (2021/03/01 G)                                       #
-#   Last modified: 2021/03/04  (2021/03/01 G)                                 #
+#   Last modified: 2021/03/06  (2021/03/03 G)                                 #
 #                                                                             #
 #   Description:                                                              #
 #     This code performs the simulation for age dynamics of a system of       #
@@ -132,10 +132,12 @@ class lattice_ant_model:
         damping = self.compute_damping()
         origin = start[0] * self.latticesize() + start[1]
         destination = end[0] * self.latticesize() + end[1]
-        arg1 = np.array([damping[:, destination]-damping[:, origin]])
-        dE = np.sum(np.dot(np.transpose(arg1),flattice[:, :])
-                    + (2 * self.interaction()[anttype, anttype] 
-                         * (1 - damping[destination, origin])))
+        arg1 = np.array([damping[:, destination] - damping[:, origin]])
+        arg2 = np.dot(np.transpose(flattice), self.interaction()[anttype, :])
+        dE = 2 * np.dot(arg1[0], arg2)
+        dE += (2 * self.interaction()[anttype, anttype] 
+                 * (1 - damping[destination, origin]))
+
         return dE
 
     def run(self, tt):
@@ -145,6 +147,7 @@ class lattice_ant_model:
         energy = np.zeros(tt)
         energy[0] = self.compute_energy(flattice)
         while ct < tt:
+            assert np.sum(flattice) == np.sum(self.mcount())
             anttype, origin, destination = self.generate_step(flattice)
             valid, dE = self.validate_step(origin, destination,
                                            flattice, anttype)
@@ -154,7 +157,7 @@ class lattice_ant_model:
                 lattice[anttype, destination] +=1
                 energy[ct] = energy[ct-1] + dE
             else:
-                pass
+                energy[ct] = energy[ct-1]
             ct += 1
 
         return energy
@@ -199,7 +202,7 @@ class lattice_ant_model:
         done = False
         while not done:
             step = random.randint(0, 3)
-            destination = origin + step
+            destination = origin + moves[step]
             # Ensures 'destination' is still inside the lattice
             criteria = (destination >= 0) & (destination < self.latticesize())
             boundcheck = np.all(criteria)
@@ -210,7 +213,7 @@ class lattice_ant_model:
     def validate_step(self, origin, destination, flattice, anttype):
         dE = self.compute_dE(origin, destination, flattice, anttype)
         threshold = self.threshold() * random.random()
-        if dE > 0:
+        if dE < 0:
             return True, dE
         elif math.exp(-dE / self.temperature()) > threshold:
             return True, dE
