@@ -34,7 +34,14 @@ class lattice_ant_model:
     def __init__(self):
 
         param = json.load(open('lattice_ant_model_params.json', 'r+'))
+
+        # These parameters are for configuring what simulation to set up
+        self.boundarycondition_ = param['boundary_condition']
+        self.selectionmethod_ = param['ant_selection_method']
+        self.wallinteraction_ = param['enable_wall_effect']
+
         # These parameters are for setting up the lattice and the ants.
+        self.tsteps_ = param['timesteps']
         self.latticesize_ = param['lattice_size']
         self.nspecies_ = param['n_species']
         self.mcount_ = np.array(param['m_count'])
@@ -48,6 +55,8 @@ class lattice_ant_model:
 
         # This block checks that the input parameters are consistent with
         # each other and with what is physically sensible.
+        errmsg0 = 'Runtime parameter invalid (tsteps = {} < 1'.format(
+                    self.tsteps)
         errmsg1 = ('The number of ant species ({}) and the number of' +
                   ' entries on the ant count list m_count ({}) do not' +
                   ' match. Check the params file.')
@@ -64,6 +73,7 @@ class lattice_ant_model:
         errmsg4 = 'Probability threshold is out of range ({})'
         errmsg4 = errmsg4.format(self.threshold_)
 
+        assert self.tsteps_ > 1, errmsg0
         assert len(self.mcount_) == self.nspecies_, errmsg1
         assert len(self.interaction_) == self.nspecies_, errmsg2
         assert len(self.interaction_[0]) == self.nspecies_, errmsg2
@@ -77,6 +87,18 @@ class lattice_ant_model:
     
    
     # Getter methods
+    def boundarycondition(self):
+        return self.boundarycondition_
+
+    def selectionmethod(self):
+        return self.selectionmethod_
+
+    def wallinteraction(self):
+        return self.wallinteraction_
+
+    def tsteps(self):
+        return self.tsteps_
+
     def latticesize(self):
         return self.latticesize_
 
@@ -151,7 +173,9 @@ class lattice_ant_model:
 
         return dE
 
-    def run(self, tt):
+
+    def run(self):
+        tt = self.tsteps()
         if self.makemontage():
             ims = []
             fig = plt.figure(figsize = (5.5, 5.5))
@@ -168,11 +192,11 @@ class lattice_ant_model:
 
             if valid:
                 lattice[anttype, origin[0], origin[1]] -= 1
-                lattice[anttype, destination[0], destination[1]] +=1
-                energy[ct] = energy[ct-1] + dE
+                lattice[anttype, destination[0], destination[1]] += 1
+                energy[ct] = energy[ct - 1] + dE
                 flattice = np.array([lat.flatten() for lat in lattice])
             else:
-                energy[ct] = energy[ct-1]
+                energy[ct] = energy[ct - 1]
             ct += 1
             if self.makemontage():
                 ims.append((plt.pcolor(lattice[0],
@@ -199,8 +223,8 @@ class lattice_ant_model:
         for count in self.mcount():
             remaining = count
             while remaining > 0:
-                x = random.randint(0, self.latticesize()-1)
-                y = random.randint(0, self.latticesize()-1)
+                x = random.randint(0, self.latticesize() - 1)
+                y = random.randint(0, self.latticesize() - 1)
                 lattice[spp, x, y] += 1
                 remaining -= 1
             spp += 1
@@ -213,19 +237,19 @@ class lattice_ant_model:
         anttype = random.randint(0, self.nspecies() - 1)
         pick = random.randint(0, self.mcount()[anttype] - 1)
         position = 0
-            
+ 
         # Iterate through the lattice points to figure out which ant we
         # just picked.
         while pick > flattice[anttype, position]:
             pick -= flattice[anttype, position]
-            position +=1
-        
+            position += 1
+
         if flattice[anttype, position] < 1 & position < l:
             position += 1
 
         origin = np.array([math.floor(position / self.latticesize()),
                            position % self.latticesize()])
-        
+
         moves = np.array([[1, 0], [0, 1], [-1, 0], [0, -1]])
         done = False
         while not done:
@@ -240,9 +264,9 @@ class lattice_ant_model:
 
     def validate_step(self, origin, destination, flattice, anttype):
         # First check if there is an ant that can be moved
-        coords = origin[0] * self.latticesize() + origin[1]
-        if flattice[0][coords] < 1:
-            return False, 0
+        #coords = origin[0] * self.latticesize() + origin[1]
+        #if flattice[0][coords] < 1:
+        #    return False, 0
 
         dE = self.compute_dE(origin, destination, flattice, anttype)
         threshold = self.threshold() * random.random()
@@ -260,13 +284,12 @@ if __name__ == '__main__':
     if sim.tt():
         start = time.time()
 
-    try:
-        runtime = int(input('Enter number of timesteps: '))
-        assert runtime > 1, 'Runtime parameter invalid'
-    except (ValueError, TypeError, AssertionError):
-        print('Input value for number of timestep is invalid. Terminating.')
-        sys.exit(0)
-    energy = sim.run(runtime)
+    #try:
+    #    runtime = int(input('Enter number of timesteps: '))
+    #except (ValueError, TypeError, AssertionError):
+    #    print('Input value for number of timestep is invalid. Terminating.')
+    #    sys.exit(0)
+    energy = sim.run()
 
     fig = plt.figure()
     ax = fig.subplots()
