@@ -20,6 +20,7 @@
 import h5py
 import json
 import math
+import matplotlib.animation as ani
 import matplotlib.pyplot as plt
 import numpy as np
 import os
@@ -69,6 +70,9 @@ class lattice_ant_model:
         assert self.temperature_ > 0, errmsg3
         assert (self.threshold_ > 0) & (self.threshold_ <= 1), errmsg4
 
+        # params to enable/disable optional features
+        self.tt_ = param['do_time_trial']
+        self.makemontage_ = param['make_montage']
         return
     
    
@@ -97,7 +101,14 @@ class lattice_ant_model:
     def temperature(self):
         return self.temperature_
 
-    
+    def tt(self):
+        return self.tt_
+
+    def makemontage(self):
+        return self.makemontage_
+
+
+    # Methods to compute stuff
     def compute_damping(self):
         damp_length = self.latticesize() ** 2
         damparray = np.zeros((damp_length, damp_length))
@@ -141,6 +152,9 @@ class lattice_ant_model:
         return dE
 
     def run(self, tt):
+        if self.makemontage():
+            ims = []
+            fig = plt.figure(figsize = (5.5, 5.5))
         ct = 1
         lattice = self.populate_lattice()
         flattice = np.array([lat.flatten() for lat in lattice])
@@ -160,8 +174,14 @@ class lattice_ant_model:
             else:
                 energy[ct] = energy[ct-1]
             ct += 1
+            if self.makemontage():
+                ims.append((plt.pcolor(lattice[0],
+                                      cmap = 'Blues'),) )
 
         print(lattice)
+        if self.makemontage():
+            anim = ani.ArtistAnimation(fig, ims)
+            anim.save('montage.mp4', fps = 15)
         fig = plt.figure()
         ax = fig.subplots()
         ax.pcolor(lattice[0])
@@ -236,6 +256,10 @@ class lattice_ant_model:
 
 if __name__ == '__main__':
     sim = lattice_ant_model()
+
+    if sim.tt():
+        start = time.time()
+
     try:
         runtime = int(input('Enter number of timesteps: '))
         assert runtime > 1, 'Runtime parameter invalid'
@@ -250,6 +274,9 @@ if __name__ == '__main__':
     fig.savefig('energy.png')
     plt.close()
 
+    if sim.tt():
+        end = time.time()
+        print('Total runtime: ', end - start, ' s')
     print('Process completed successfully. Exiting.')
     sys.exit(0)
 
