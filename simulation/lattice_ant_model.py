@@ -108,7 +108,7 @@ class lattice_ant_model:
                 ydistance = abs(math.floor(f / self.latticesize())
                                 - math.floor(i / self.latticesize()))
                 distance = math.sqrt(xdistance ** 2 + ydistance ** 2)
-                damparray[i,f] = math.exp(-self.lengthscale() * distance)
+                damparray[i,f] = math.exp(-self.lengthscale() * distance ** 2)
 
         return damparray
 
@@ -147,18 +147,26 @@ class lattice_ant_model:
         energy = np.zeros(tt)
         energy[0] = self.compute_energy(flattice)
         while ct < tt:
-            assert np.sum(flattice) == np.sum(self.mcount())
+            assert int(np.sum(flattice)) == np.sum(self.mcount())
             anttype, origin, destination = self.generate_step(flattice)
             valid, dE = self.validate_step(origin, destination,
                                            flattice, anttype)
 
             if valid:
-                lattice[anttype, origin] -= 1
-                lattice[anttype, destination] +=1
+                lattice[anttype, origin[0], origin[1]] -= 1
+                lattice[anttype, destination[0], destination[1]] +=1
                 energy[ct] = energy[ct-1] + dE
+                flattice = np.array([lat.flatten() for lat in lattice])
             else:
                 energy[ct] = energy[ct-1]
             ct += 1
+
+        print(lattice)
+        fig = plt.figure()
+        ax = fig.subplots()
+        ax.pcolor(lattice[0])
+        fig.savefig('lattice.png')
+        plt.close(fig)
 
         return energy
 
@@ -211,11 +219,16 @@ class lattice_ant_model:
 
 
     def validate_step(self, origin, destination, flattice, anttype):
+        # First check if there is an ant that can be moved
+        coords = origin[0] * self.latticesize() + origin[1]
+        if flattice[0][coords] < 1:
+            return False, 0
+
         dE = self.compute_dE(origin, destination, flattice, anttype)
         threshold = self.threshold() * random.random()
-        if dE < 0:
+        if dE > 0:
             return True, dE
-        elif math.exp(-dE / self.temperature()) > threshold:
+        elif math.exp(dE / self.temperature()) > threshold:
             return True, dE
         else:
             return False, 0
