@@ -263,10 +263,11 @@ class lattice_ant_model:
 
 
     def validate_step(self, origin, destination, flattice, anttype):
-        # First check if there is an ant that can be moved
-        #coords = origin[0] * self.latticesize() + origin[1]
-        #if flattice[0][coords] < 1:
-        #    return False, 0
+        # First check if the move is physically possible
+        coords1 = origin[0] * self.latticesize() + origin[1]
+        coords2 = destination[0] * self.latticesize() + destination[1]
+        if (flattice[0][coords1] < 1 or flattice[0][coords2]) > 13:
+            return False, 0
 
         dE = self.compute_dE(origin, destination, flattice, anttype)
         threshold = self.threshold() * random.random()
