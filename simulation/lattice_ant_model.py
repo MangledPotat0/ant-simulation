@@ -4,7 +4,7 @@
 #   Code written by: Dawith Lim                                               #
 #                                                                             #
 #   Created: 2021/03/04  (2021/03/01 G)                                       #
-#   Last modified: 2021/03/06  (2021/03/03 G)                                 #
+#   Last modified: 2021/03/11  (2021/03/08 G)                                 #
 #                                                                             #
 #   Description:                                                              #
 #     This code performs the simulation for age dynamics of a system of       #
@@ -42,6 +42,7 @@ class lattice_ant_model:
 
         # These parameters are for setting up the lattice and the ants.
         self.tsteps_ = param['timesteps']
+        self.montagestep_ = param['montage_step']
         self.latticesize_ = param['lattice_size']
         self.nspecies_ = param['n_species']
         self.mcount_ = np.array(param['m_count'])
@@ -98,6 +99,9 @@ class lattice_ant_model:
 
     def tsteps(self):
         return self.tsteps_
+
+    def montagestep(self):
+        return self.montagestep_
 
     def latticesize(self):
         return self.latticesize_
@@ -184,6 +188,8 @@ class lattice_ant_model:
         flattice = np.array([lat.flatten() for lat in lattice])
         energy = np.zeros(tt)
         energy[0] = self.compute_energy(flattice)
+        fig = plt.figure()
+        plt.title('Distribution')
         while ct < tt:
             assert int(np.sum(flattice)) == np.sum(self.mcount())
             anttype, origin, destination = self.generate_step(flattice)
@@ -198,15 +204,18 @@ class lattice_ant_model:
             else:
                 energy[ct] = energy[ct - 1]
             ct += 1
-            if self.makemontage():
-                ims.append((plt.pcolor(lattice[0],
-                                      cmap = 'Blues'),) )
+            if self.makemontage() & (ct % self.montagestep() == 0):
+                latplot = plt.pcolor(lattice[0],
+                                     norm = plt.Normalize(0, 13),
+                                     cmap = 'Blues')
+                ims.append((latplot,))
 
-        print(lattice)
+        print('Simulation completed; generating montage.')
         if self.makemontage():
+            plt.colorbar(latplot)
             anim = ani.ArtistAnimation(fig, ims)
             anim.save('montage.mp4', fps = 15)
-        fig = plt.figure()
+
         ax = fig.subplots()
         ax.pcolor(lattice[0])
         fig.savefig('lattice.png')
@@ -285,13 +294,10 @@ if __name__ == '__main__':
     if sim.tt():
         start = time.time()
 
-    #try:
-    #    runtime = int(input('Enter number of timesteps: '))
-    #except (ValueError, TypeError, AssertionError):
-    #    print('Input value for number of timestep is invalid. Terminating.')
-    #    sys.exit(0)
     energy = sim.run()
 
+    print('Montage generation completed; producing energy plot')
+    energy = energy[::sim.montagestep()]
     fig = plt.figure()
     ax = fig.subplots()
     ax.plot(np.arange(len(energy)), energy)
