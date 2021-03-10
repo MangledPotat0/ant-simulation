@@ -179,6 +179,10 @@ class lattice_ant_model:
 
 
     def run(self):
+        lsize = self.latticesize()
+        nsp = self.nspecies()
+        count = self.mcount()
+
         tt = self.tsteps()
         if self.makemontage():
             ims = []
@@ -190,25 +194,35 @@ class lattice_ant_model:
         energy[0] = self.compute_energy(flattice)
         fig = plt.figure()
         plt.title('Distribution')
-        while ct < tt:
-            assert int(np.sum(flattice)) == np.sum(self.mcount())
-            anttype, origin, destination = self.generate_step(flattice)
-            valid, dE = self.validate_step(origin, destination,
-                                           flattice, anttype)
+        with h5py.File('data.h5py', 'w') as dfile:
+            chunk = (1, nsp, lsize, lsize)
+            dset = dfile.create_dataset('lattices', chunk,
+                                        dtype = np.float32, chunks = chunk,
+                                        maxshape = (None, nsp, lsize, lsize))
+            while ct < tt:
+                assert int(np.sum(flattice)) == np.sum(count)
+                anttype, origin, destination = self.generate_step(flattice)
+                valid, dE = self.validate_step(origin, destination,
+                                               flattice, anttype)
 
-            if valid:
-                lattice[anttype, origin[0], origin[1]] -= 1
-                lattice[anttype, destination[0], destination[1]] += 1
-                energy[ct] = energy[ct - 1] + dE
-                flattice = np.array([lat.flatten() for lat in lattice])
-            else:
-                energy[ct] = energy[ct - 1]
-            ct += 1
-            if self.makemontage() & (ct % self.montagestep() == 0):
-                latplot = plt.pcolor(lattice[0],
-                                     norm = plt.Normalize(0, 13),
-                                     cmap = 'Blues')
-                ims.append((latplot,))
+                if valid:
+                    lattice[anttype, origin[0], origin[1]] -= 1
+                    lattice[anttype, destination[0], destination[1]] += 1
+                    energy[ct] = energy[ct - 1] + dE
+                    flattice = np.array([lat.flatten() for lat in lattice])
+                else:
+                    energy[ct] = energy[ct - 1]
+                ct += 1
+                if self.makemontage() & (ct % self.montagestep() == 0):
+                    latplot = plt.pcolor(lattice[0],
+                                         norm = plt.Normalize(0, 13),
+                                         cmap = 'Blues')
+                    ims.append((latplot,))
+                
+                dset[-1] = lattice
+                dset.resize((len(dset) + 1, nsp, lsize, lsize))
+
+
 
         print('Simulation completed; generating montage.')
         if self.makemontage():
@@ -217,7 +231,8 @@ class lattice_ant_model:
             anim.save('montage.mp4', fps = 15)
 
         ax = fig.subplots()
-        ax.pcolor(lattice[0])
+        cmap = ax.pcolor(lattice[0], cmap = 'Blues')
+        plt.colorbar(cmap)
         fig.savefig('lattice.png')
         plt.close(fig)
 
