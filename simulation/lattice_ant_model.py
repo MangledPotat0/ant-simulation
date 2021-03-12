@@ -194,7 +194,7 @@ class lattice_ant_model:
         energy[0] = self.compute_energy(flattice)
         fig = plt.figure()
         plt.title('Distribution')
-        with h5py.File('data.h5py', 'w') as dfile:
+        with h5py.File('data.hdf5', 'w') as dfile:
             chunk = (1, nsp, lsize, lsize)
             dset = dfile.create_dataset('lattices', chunk,
                                         dtype = np.float32, chunks = chunk,
