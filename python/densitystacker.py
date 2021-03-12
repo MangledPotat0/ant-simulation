@@ -5,7 +5,7 @@
 #                                                                              #
 #   Version 1.2.2                                                              #
 #   Created: 2020/08/17                                                        #
-#   Last modified: 2021/01/15                                                  #
+#   Last modified: 2021/03/11 (03/14 G)                                        #
 #                                                                              #
 #   Description:                                                               #
 #     This code takes multiple optical density data from multiple experiments  #
@@ -32,13 +32,19 @@ filepath = '../../data/density/'
 antcount = int(args['number'])
 bincount = int(args['bincount'])
 filenames = args['file']
-length = 18000
-
+vidlen = 9000
+pile = np.zeros((9000, bincount, bincount))
 out = time.strftime('%Y%m%d%H')
 
 for name in filenames:
     filetemp = h5py.File('{}{}.hdf5'.format(filepath, name), 'r')
     datatemp = filetemp['{}x{}'.format(bincount, bincount)]
+    length = len(datatemp)
+    skips = 1
+    if round(length / 9000) == 2:
+        skips = 2
+    else if round(length / 9000) == 3:
+        skips = 3
     #if length == -1:
     #    length = len(datatemp)
     #    pile = np.empty((length, bincount, bincount))
@@ -49,7 +55,10 @@ for name in filenames:
     #else:
     #    length = length
     #print(length)
-    pile = pile[:length] + datatemp[:length]
+    try:
+        pile = pile[:length] + datatemp[:length:skip]
+    except IndexError:
+        print('Something happened here')
 
 outputfile = h5py.File('{}{}.hdf5'.format(filepath, out), 'w')
 outputfile.create_dataset('{}x{}'.format(bincount, bincount), data = pile)
