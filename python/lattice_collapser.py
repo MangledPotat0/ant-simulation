@@ -4,7 +4,7 @@
 #   Code written by Dawith Lim                                                #
 #                                                                             #
 #   File created: 2021/03/15 (03/18 G)                                        #
-#   Last modified: 2021/03/15 (03/18 G)                                       #
+#   Last modified: 2021/03/18 (03/18 G)                                       #
 #                                                                             #
 #   Description:                                                              #
 #    Collapses a 2D lattice into a key-value pair, where key is the linear    #
@@ -44,8 +44,9 @@ class lattice_collapser():
 
     def collapse(self, lattice):
         size = len(lattice)
-        center = np.array([size + 1, size + 1]) / 2
+        center = np.array([size - 1, size - 1]) / 2
         output = {}
+        duplicate = {}
         for i in range(size):
             for j in range(size):
                 xdistance = abs(i - center[0])
@@ -53,11 +54,42 @@ class lattice_collapser():
                 distance = math.sqrt(xdistance ** 2 + ydistance ** 2)
                 try:
                     output[distance] += lattice[i, j]
+                    duplicate[distance] += 1
                 except KeyError:
                     output[distance] = lattice[i, j]
+                    duplicate[distance] = 1
+        
+        for key in output.keys():
+            output[key] = output[key] / duplicate[key]
 
-        print(output)
         return output
+
+
+    def duplicates(self, size):
+        ct = math.ceil(size / 2)
+        sequence = []
+        if size % 2 == 0:
+            while ct > 1:
+                sequence.append(4)
+                ct2 = ct - 1
+                while ct2 > 0:
+                    sequence.append(8)
+                    ct2 -= 1
+                ct -= 1
+            sequence.append(4)
+                
+        elif size % 2 == 1:
+            while ct > 1:
+                sequence.append(4)
+                ct2 = ct - 2
+                while ct2 > 0:
+                    sequence.append(8)
+                    ct2 -= 1
+                sequence.append(4)
+                ct -= 1
+            sequence.append(1)
+
+        return sequence
 
     
     def tintegrate(self, stack):
@@ -66,17 +98,17 @@ class lattice_collapser():
         for frame in stack:
             lattice = lattice + frame
         
-        print(lattice)
-        return lattice / shape[0]
+        return lattice / np.shape(stack)[0]
 
 
     def run(self):
         stack = self.stack()[:,0,...]
         lattice = self.tintegrate(stack)
         kvpair = self.collapse(lattice)
-        density = list(kvpair.items())
-        density = np.array(density, dtype = float)
-        density = antcount * density / np.sum(density)
+        kvpair = sorted((key, value) for (key, value) in kvpair.items())
+        #density = list(kvpair)
+        density = np.array(kvpair, dtype = float)
+        density = np.transpose(density)
 
         fig = plt.figure()
         ax = fig.subplots()
@@ -91,7 +123,7 @@ if __name__ == '__main__':
 
     ap = arg.ArgumentParser()
     ap.add_argument('-f', '--file', help = 'input file name')
-    ap.add_argument('-n', '--antcount', help = 'number of ants', dtype = int)
+    ap.add_argument('-n', '--antcount', help = 'number of ants', type = int)
     args = vars(ap.parse_args())
     dfile = args['file']
     antcount = args['antcount']
