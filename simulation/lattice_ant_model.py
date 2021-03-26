@@ -4,7 +4,7 @@
 #   Code written by: Dawith Lim                                               #
 #                                                                             #
 #   Created: 2021/03/04  (2021/03/01 G)                                       #
-#   Last modified: 2021/03/11  (2021/03/08 G)                                 #
+#   Last modified: 2021/03/25  (2021/03/22 G)                                 #
 #                                                                             #
 #   Description:                                                              #
 #     This code performs the simulation for age dynamics of a system of       #
@@ -38,7 +38,8 @@ class lattice_ant_model:
         # These parameters are for configuring what simulation to set up
         self.boundarycondition_ = param['boundary_condition']
         self.selectionmethod_ = param['ant_selection_method']
-        self.wallinteraction_ = param['enable_wall_effect']
+        self.enable_wallinteraction_ = param['enable_wall_effect']
+        self.wallstrength_ = param['wall_interaction_strength']
 
         # These parameters are for setting up the lattice and the ants.
         self.tsteps_ = param['timesteps']
@@ -94,8 +95,11 @@ class lattice_ant_model:
     def selectionmethod(self):
         return self.selectionmethod_
 
-    def wallinteraction(self):
-        return self.wallinteraction_
+    def enable_wallinteraction(self):
+        return self.enable_wallinteraction_
+
+    def wallstrength(self):
+        return self.wallstrength_
 
     def tsteps(self):
         return self.tsteps_
@@ -132,6 +136,14 @@ class lattice_ant_model:
 
     def makemontage(self):
         return self.makemontage_
+
+
+    def simple_wall_attraction(self):
+        latt = np.ones((self.latticesize(), self.latticesize()))
+        latt *= self.wallstrength()
+        latt[1:-1, 1:-1] = 0
+
+        return latt
 
 
     # Methods to compute stuff
@@ -175,6 +187,10 @@ class lattice_ant_model:
         dE += (2 * self.interaction()[anttype, anttype] 
                  * (1 - damping[destination, origin]))
 
+        # Boundary effect
+        boundary = self.wall_attraction
+        dE += (boundary[end[0], end[1]] - boundary[start[0], start[1]])
+        
         return dE
 
 
@@ -182,6 +198,7 @@ class lattice_ant_model:
         lsize = self.latticesize()
         nsp = self.nspecies()
         count = self.mcount()
+        self.wall_attraction = self.simple_wall_attraction()
 
         tt = self.tsteps()
         if self.makemontage():
@@ -316,6 +333,10 @@ if __name__ == '__main__':
     fig = plt.figure()
     ax = fig.subplots()
     ax.plot(np.arange(len(energy)), energy)
+
+    ax.set_xlabel('Time (dT)')
+    ax.set_ylabel('Utility function')
+
     fig.savefig('energy.png')
     plt.close()
 
