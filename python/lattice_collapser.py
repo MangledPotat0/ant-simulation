@@ -114,8 +114,8 @@ class lattice_collapser():
         ax = fig.subplots()
         ax.plot(density[0], density[1])
 
-        ax.add_xlabel('Distance from center (dx)')
-        ax.add_ylabel('Average ant count')
+        ax.set_xlabel('Distance from center (dx)')
+        ax.set_ylabel('Average ant count')
 
         fig.savefig('test.png')
 
