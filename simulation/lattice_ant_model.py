@@ -146,7 +146,7 @@ class lattice_ant_model:
         return latt
 
 
-    # Methods to compute stuff
+    # Compute methods
     def compute_damping(self):
         damp_length = self.latticesize() ** 2
         damparray = np.zeros((damp_length, damp_length))
@@ -195,22 +195,27 @@ class lattice_ant_model:
 
 
     def run(self):
+        # local variables with shorthand names
         lsize = self.latticesize()
         nsp = self.nspecies()
         count = self.mcount()
+        tt = self.tsteps()
+
         self.wall_attraction = self.simple_wall_attraction()
 
-        tt = self.tsteps()
         if self.makemontage():
             ims = []
             fig = plt.figure(figsize = (5.5, 5.5))
+
         ct = 1
         lattice = self.populate_lattice()
         flattice = np.array([lat.flatten() for lat in lattice])
         energy = np.zeros(tt)
         energy[0] = self.compute_energy(flattice)
+
         fig = plt.figure()
         plt.title('Distribution')
+
         with h5py.File('data.hdf5', 'w') as dfile:
             chunk = (1, nsp, lsize, lsize)
             dset = dfile.create_dataset('lattices', chunk,
