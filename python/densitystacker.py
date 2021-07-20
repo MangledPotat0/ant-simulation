@@ -32,8 +32,8 @@ filepath = '../../data/density/'
 antcount = int(args['number'])
 bincount = int(args['bincount'])
 filenames = args['file']
-vidlen = 9000
-pile = np.zeros((9000, bincount, bincount))
+outlen = 9000
+pile = np.zeros((outlen, bincount, bincount))
 out = time.strftime('%Y%m%d%H')
 
 for name in filenames:
@@ -43,8 +43,10 @@ for name in filenames:
     skips = 1
     if round(length / 9000) == 2:
         skips = 2
-    else if round(length / 9000) == 3:
+        length = 18000
+    elif round(length / 9000) == 3:
         skips = 3
+        length = 27000
     #if length == -1:
     #    length = len(datatemp)
     #    pile = np.empty((length, bincount, bincount))
@@ -56,9 +58,13 @@ for name in filenames:
     #    length = length
     #print(length)
     try:
-        pile = pile[:length] + datatemp[:length:skip]
+        pilea = pile[:length]
+        pileb = datatemp[:length:skips]
+        pile = pilea + pileb
     except IndexError:
         print('Something happened here')
+    except ValueError:
+        print(np.shape(pilea), np.shape(pileb))
 
 outputfile = h5py.File('{}{}.hdf5'.format(filepath, out), 'w')
 outputfile.create_dataset('{}x{}'.format(bincount, bincount), data = pile)

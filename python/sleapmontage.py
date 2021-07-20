@@ -61,7 +61,7 @@ for key in trajfile:
     trajectories[key] = trajfile[key]
 
 offset = 1
-length = 999990
+length = 500
 ct = 0
 while ct < offset:
     success, frame = video.read()
