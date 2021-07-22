@@ -4,7 +4,7 @@
 #   Code written by: Dawith Lim                                               #
 #                                                                             #
 #   Created: 2021/03/04  (2021/03/01 G)                                       #
-#   Last modified: 2021/03/25  (2021/03/22 G)                                 #
+#   Last modified: 2021/08/07  (2021/07/22 G)                                 #
 #                                                                             #
 #   Description:                                                              #
 #     This code performs the simulation for age dynamics of a system of       #
@@ -49,6 +49,7 @@ class lattice_ant_model:
         self.mcount_ = np.array(param['m_count'])
         self.interaction_ = np.array(param['interaction_table'])
         self.lengthscale_ = param['length_scale']
+        self.packinglimit_ = math.floor(self.lengthscale_ ** 2 / 0.5)
 
         # These parameters are for the metropolis algorithm used for MCMC.
         self.threshold_ = param['threshold']
@@ -69,10 +70,10 @@ class lattice_ant_model:
                   ' params file.')
         errmsg2 = errmsg2.format(self.nspecies_, len(self.interaction_))
         
-        errmsg3 = 'Temperature is set to negative value! ({})'
+        errmsg3 = 'Temperature is set to negative value: ({})'
         errmsg3 = errmsg3.format(self.temperature_)
         
-        errmsg4 = 'Probability threshold is out of range ({})'
+        errmsg4 = 'Probability threshold is out of range: ({})'
         errmsg4 = errmsg4.format(self.threshold_)
 
         assert self.tsteps_ > 1, errmsg0
@@ -122,6 +123,9 @@ class lattice_ant_model:
     def lengthscale(self):
         return self.lengthscale_
 
+    def packinglimit(self):
+        return self.packinglimit_
+
     def threshold(self):
         return self.threshold_
 
@@ -146,7 +150,7 @@ class lattice_ant_model:
         return latt
 
 
-    # Methods to compute stuff
+    # Compute methods
     def compute_damping(self):
         damp_length = self.latticesize() ** 2
         damparray = np.zeros((damp_length, damp_length))
@@ -198,6 +202,7 @@ class lattice_ant_model:
         lsize = self.latticesize()
         nsp = self.nspecies()
         count = self.mcount()
+        pack = self.packinglimit()
         self.wall_attraction = self.simple_wall_attraction()
 
         tt = self.tsteps()
@@ -232,7 +237,7 @@ class lattice_ant_model:
                 ct += 1
                 if self.makemontage() & (ct % self.montagestep() == 0):
                     latplot = plt.pcolor(lattice[0],
-                                         norm = plt.Normalize(0, 13),
+                                         norm = plt.Normalize(0, pack),
                                          cmap = 'Blues')
                     ims.append((latplot,))
                 
@@ -305,9 +310,10 @@ class lattice_ant_model:
 
     def validate_step(self, origin, destination, flattice, anttype):
         # First check if the move is physically possible
+        pack = self.packinglimit()
         coords1 = origin[0] * self.latticesize() + origin[1]
         coords2 = destination[0] * self.latticesize() + destination[1]
-        if (flattice[0][coords1] < 1 or flattice[0][coords2]) > 13:
+        if (flattice[0][coords1] < 1 or flattice[0][coords2]) > pack:
             return False, 0
 
         dE = self.compute_dE(origin, destination, flattice, anttype)
