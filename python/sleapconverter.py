@@ -2,6 +2,9 @@
 #                                                                              #
 #  SLEAP output conversion code for python 3.7.4                               #
 #                                                                              #
+#  The code takes the .h5 output from SLEAP run, and save it into a new file   #
+#  in .hdf5 file with a slightly altered structure.                            #
+#                                                                              #
 ################################################################################
 
 import argparse as aps

@@ -45,6 +45,7 @@ codepath = os.path.dirname(os.path.realpath(__file__))
 os.chdir(codepath)
 
 montpath = '../../data/montages/{}'.format(args['file'])
+
 try:
     os.mkdir(montpath)
 except OSError:
