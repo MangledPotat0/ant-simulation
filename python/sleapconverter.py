@@ -25,7 +25,14 @@ class converter():
                   'proceeding with default params.')
             ap = aps.ArgumentParser()
             ap.add_argument('-f', '--filename', required = True, help = 'File name')
+            ap.add_argument('-v', '--videoname', help = 'Video name')
+
             args = vars(ap.parse_args())
+
+            if len(args['videoname']) == 0:
+                videoname = args['filename']
+            else:
+                videoname = args['videoname']
 
             codepath = os.path.dirname(os.path.realpath(__file__))
             os.chdir(codepath)
