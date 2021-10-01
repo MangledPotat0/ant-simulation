@@ -52,14 +52,20 @@ class converter():
             with hp.File('{}.hdf5'.format(fullpath), 'w') as out:
                 srctable = src['tracks']
                 for traj in srctable:
-                    if traj[0,0,0] > 0:
-                        out.create_dataset('trajectory_{}'.format(ct), 
-                                           data = traj)
-                        print('Added trajectory number {}'.format(ct))
-                        out.flush()
-                        ct += 1
-                    else:
-                        print('Skipped a NaN trajectory')
+                    frameID = np.array([], dtype=int)
+                    for frame in range(len(traj[0,0,:])):
+                        if np.linalg.norm(traj[:,:,frame] > 0):
+                            frameID = np.append(frameID, int(frame))
+                        else:
+                            print('Skipped NaN entry')
+                    coords = traj[:,:,frameID]
+                    print('Added trajectory number {}'.format(ct))
+                    out.create_dataset('trajectory_{}'.format(ct), 
+                                       data = coords)
+                    out.create_dataset('frames_{}'.format(ct), 
+                                       data = frameID)
+                    out.flush()
+                    ct += 1
         return
 
 

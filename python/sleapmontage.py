@@ -33,13 +33,16 @@ ap = argparse.ArgumentParser()
 # Add arguments needed for the code
 # -f filename.ext -> Video file to be analyzed
 
-ap.add_argument(
-        "-f", "--file",
-        required = True,
-        help = "Experiment file ID"
-        )
+ap.add_argument('-f', '--file', required = True,
+                help = 'Trajectory file name')
+ap.add_argument('-v', '--video', help = 'Video ID')
 
 args = vars(ap.parse_args())
+
+if len(args['video']) == 0:
+    vidname = args['file']
+else:
+    vidname = args['video']
 
 codepath = os.path.dirname(os.path.realpath(__file__))
 os.chdir(codepath)
@@ -54,7 +57,7 @@ except OSError:
 vidpath = '../../data/videos/'
 trajpath = '../../data/sleap/'
 
-video = cv.VideoCapture('{}{}.mp4'.format(vidpath,args['file']))
+video = cv.VideoCapture('{}{}.mp4'.format(vidpath,vidname))
 trajfile = h5py.File('{}{}.hdf5'.format(trajpath,args['file']),'r')
 trajectories = {}
 
