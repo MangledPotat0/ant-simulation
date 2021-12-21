@@ -102,9 +102,9 @@ while success:
     for keys in trajectories:
         try:
             traj = trajectories[keys]
-            whichrow = np.where(traj[:,2]==ct)[0][0]
+            whichrow = np.where(traj[:,2] == ct)[0][0]
             coords = tuple(traj[whichrow])
-            frame = cv.circle(frame, (int(coords[1]),int(coords[0])), 
+            frame = cv.circle(frame, (int(coords[1]), int(coords[0])), 
                               radius, color[keys], thickness)
         except IndexError:
             #print('Warning: trajectory {} {} {}'.format(
