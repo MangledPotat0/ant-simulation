@@ -1,7 +1,7 @@
 #!/bin/bash
 
-wd=/mnt/c/Users/user/Desktop/Coding/ant
-#/app/antproject 
+wd=/app/antproject 
+#/mnt/c/Users/user/Desktop/Coding/ant
 dd=$(date '+%Y%m%d')
 fname=$1
 
@@ -9,17 +9,18 @@ vidd=${wd}/data/videos
 pydir=${wd}/codebase/python
 trajdir=${wd}/data/trajectories
 montdir=${wd}/data/montages
+sleapdir=${wd}/data/sleap
 cd $wd
 
 # Run SLEAP detection and initial tracking
-#sleap-track $fname.mp4 \
-#	--video.input_format channels_last \
-#	-m current/centered/training_config.json \
-#	-m current/centroid/training_config.json \
-#	--tracking.tracker simple \
-#	--verbosity json \
-#	--no-empty-frames \
-#	-o $fname.slp
+sleap-track $vidd${fname}.mp4 \
+	--video.input_format channels_last \
+	-m ${sleapdir}/current/centered/training_config.json \
+	-m ${sleapdir}/current/centroid/training_config.json \
+	--tracking.tracker simple \
+	--verbosity json \
+	--no-empty-frames \
+	-o ${fname}.slp
 
 # Reformat SLEAP output
 
