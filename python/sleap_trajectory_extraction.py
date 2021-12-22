@@ -10,6 +10,12 @@
 #   Description:                                                               #
 #     Python version of sleap_trajectory_extraction.nb                         #
 #                                                                              #
+#   Procedure:                                                                 #
+#     1. Load raw position data from SLEAP                                     #
+#     2. Run a 'simple' linking based on proximity and direction               #
+#     3. Do 'proper' stitching based on probability                            #
+#     4. Reformat output and export                                            #
+#                                                                              #
 ################################################################################
 
 import argparse
@@ -17,15 +23,58 @@ import h5py
 from hungarian_algorithm import algorithm as hungarian
 import numpy as np
 
-def prepare():
+#   Input data structure:
+#     FILE (.h5)
+#       -
+#       -
+#       -
+#       -
+#       -
+#       -
+#       -
+
+#   Output data structure:
+#     FILE (.hdf5)
+#       > trajectory            (1 x N HDF5 dataset)
+#         > frame               (1 x 2 list)
+#           > frame number      (int)
+#           > position          (1 x 2 list)
+#             > x coordinate    (float)
+#             > y coordinate    (float)
+
+
+def prepare(trajectories):
+# Convert data format from frame-by-frame structure to trajectory-by-trajectory
+# format. Also add orientation to the data
+
+    return
+
+def simplelink(trajectories):
+# Perform a conservative simple linking based on proximity and orientation,
+# just to have some trajectory fragments to get started.
+
+    return
+
+def oriAnt(position, weights):
+# Finding orientation using relative positions of body segments
+
+    head = position[0]
+    thorax = position[1]
+    abdomen = position[2]
     
-    return
+# Taking a weighed sum in case simple average isn't good
+    direction = weights[0] * (head - thorax) + weights[1] * (thorax - abdomen)
 
-def oriAnt():
+    return math.arctan(direction[0], direction[1])
 
-    return
+# If body segments are unavailable, use avg positions over two frames
+def oriAnt2(pos1, pos2):
+    direction = pos2 - pos1
 
-def build_graph(trajectories, sources, targets):
+    return math.arctan(direction[0], direction[1])
+
+def build_graph(trajectories, sources, targets:
+# Build a graph mapping between source trajectories and target trajectories
 # sources : list of trajectory numbers for sources
 # targets: list of trajectory numbers for targets
 
@@ -79,6 +128,10 @@ def link(trajectories):
     sourceremove = []
     targetremove = []
         
+
+def outputformat(trajectories):
+    
+    return
 
 def run():
 
