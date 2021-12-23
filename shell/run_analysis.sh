@@ -6,11 +6,20 @@ dd=$(date '+%Y%m%d')
 fname=$1
 
 vidd=${wd}/data/videos
-pydir=${wd}/codebase/python
+pydir=${wd}/codebase/tracking
 trajdir=${wd}/data/trajectories
 montdir=${wd}/data/montages
 sleapdir=${wd}/data/sleap
 cd $wd
+
+# convert raw h264 video into mp4
+# ffmpeg (source video) (some configs) -o ${vidd}/${fname}
+
+# Crop video to preset dimensions
+# python ${pydir}/cropper.py -v ${vidd}/${fname}
+
+# Modify fname to indicate it's beed cropped
+fname=${fname}cropped
 
 # Run SLEAP detection and initial tracking
 sleap-track ${vidd}/${fname}.mp4 \
@@ -26,10 +35,10 @@ sleap-track ${vidd}/${fname}.mp4 \
 
 # Reformat SLEAP output
 
-#python sleapconverter.py -f $(fname)_ready.slp
+#python ${pydir}/sleapconverter.py -f $(fname)_ready.slp
 
 # Fix tracks
-
+# python tracking/sleap_trajectory_extraction.py -f [file]
 echo 'Write the thing in python'
 
 # Create montage
