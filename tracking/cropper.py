@@ -3,9 +3,9 @@
 #   Ant imaging experiment video cropper for python 3.7.4                     #
 #   Code written by Dawith Lim                                                #
 #                                                                             #
-#   Version: 1.3.0                                                            #
+#   Version: 1.3.1                                                            #
 #   First written on: 2020/12/07                                              #
-#   Last modified: 2021/01/15                                                 #
+#   Last modified: 2021/12/24                                                 #
 #                                                                             #
 #   Description:                                                              #
 #     Crop ant tracking video using manual adjustments                        #
@@ -21,6 +21,7 @@ import numpy as np
 import os
 import sys
 
+# Load video
 ap = argparse.ArgumentParser()
 ap.add_argument('-v', '--video', type=str, required=True,
                 help='Input video file without file extension')
@@ -37,9 +38,7 @@ except FileNotFoundError:
 
 success, frame = vidstream.read()
 
-if not success:
-    print('Invalid imageread; process exiting.')
-    sys.exit(0)
+assert success, 'Invalid imageread; process exiting.'
 
 cropped = frame
 run = True
@@ -52,12 +51,17 @@ ll, rr, tt, bb = (0,0,0,0)
 
 while run:
 
+# For each direction (left, right, top, bottom), take user input and crop
+# image. positive value entry means cropping the image by that many pixels,
+# negative value entry means reseting the cropping process and starting over,
+# and zero value entry means proceed to the next step.
+
     while cropleft:
         currentshape = np.shape(cropped)
         cv.imshow('cropped',cropped)
         cv.waitKey()
-# negative value for reset
         xcrops = int(input('Enter the left-crop value: '))
+        assert xcrops.isnumeric(), 'Crop amount must be numerical'
         if xcrops < 0:
             cropped = frame;
         elif xcrops == 0:
@@ -65,13 +69,13 @@ while run:
         else:
             ll += xcrops
             cropped = cropped[:,xcrops:currentshape[1]]
-    # 
+
     while cropright:
         currentshape = np.shape(cropped)
-        cv.imshow('cropped',cropped)
+        cv.imshow('cropped', cropped)
         cv.waitKey()
-# negative value for reset
         xcrops = int(input('Enter the right-crop value: '))
+        assert xcrops.isnumeric(), 'Crop amount must be numerical'
         if xcrops < 0:
             cropped = frame;
         elif xcrops == 0:
@@ -84,8 +88,8 @@ while run:
         currentshape = np.shape(cropped)
         cv.imshow('cropped',cropped)
         cv.waitKey()
-# negative value for reset
         ycrops = int(input('Enter the top-crop value: '))
+        assert xcrops.isnumeric(), 'Crop amount must be numerical'
         if ycrops < 0:
             cropped = frame;
         elif ycrops == 0:
@@ -98,8 +102,8 @@ while run:
         currentshape = np.shape(cropped)
         cv.imshow('cropped',cropped)
         cv.waitKey()
-# negative value for reset
         ycrops = int(input('Enter the bottom-crop value: '))
+        assert xcrops.isnumeric(), 'Crop amount must be numerical'
         if ycrops < 0:
             cropped = frame;
         elif ycrops == 0:
@@ -109,13 +113,8 @@ while run:
             bb += ycrops
             cropped = cropped[0:currentshape[0] - ycrops,:]
 
-print('Crop size defined: {}'.format([ll, rr, tt, bb]))
-
 cropped = frame[ll:-rr, tt:-bb]
 height, width, _ = np.shape(cropped)
-
-print(np.shape(cropped))
-print(np.shape(cropped))
 
 fourcc = cv.VideoWriter_fourcc(*'mp4v')
 api = cv.CAP_ANY
