@@ -14,7 +14,7 @@ sleapdir=${wd}/data/sleap
 cd $wd
 
 # convert raw h264 video into mp4
-ffmpeg -i ${rawdir}/${fname}.h264 ${vidd}/${fname}.mp4
+ffmpeg -i ${rawdir}/${fname}.h264 ${vidd}/${fname}.mp4 -y
 
 # Crop video to preset dimensions
 # python ${pydir}/cropper.py -v ${vidd}/${fname} -c 100 100 100 100
@@ -25,6 +25,7 @@ fname=${fname}cropped
 # Run SLEAP detection and initial tracking
 sleap-track ${vidd}/${fname}.mp4 \
 	--video.input_format channels_last \
+	-frames 0-599
 	-m ${sleapdir}/current/centered/training_config.json \
 	-m ${sleapdir}/current/centroid/training_config.json \
 	--tracking.tracker simple \
