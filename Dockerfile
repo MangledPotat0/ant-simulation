@@ -14,16 +14,14 @@ COPY requirements.txt .
 
 RUN pip install --upgrade pip
 
-RUN apt-get update && apt-get install -y python3-pyqt5 git
-
-RUN git clone https://github.com/murthylab/sleap.git
-
-RUN pip install ./sleap
+RUN apt-get update && apt-get install -y python3-pyqt5 vim
 
 RUN pip install -r requirements.txt
 
 WORKDIR /app/antproject
 
 RUN mkdir data
+
+COPY inference.py /usr/local/lib/python3.8/dist-packages/sleap/nn/.
 
 CMD ["/bin/bash"]
