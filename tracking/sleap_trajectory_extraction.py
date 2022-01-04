@@ -5,7 +5,7 @@
 #                                                                              #
 #   Version 0.9                                                                #
 #   Created: 2021/12/21                                                        #
-#   Last Modified: 2021/12/21                                                  #
+#   Last Modified: 2022/01/04                                                  #
 #                                                                              #
 #   Description:                                                               #
 #     Python version of sleap_trajectory_extraction.nb                         #
@@ -21,6 +21,8 @@
 import argparse
 import h5py
 from hungarian_algorithm import algorithm as hungarian
+import kde
+import math
 import numpy as np
 
 #   Input data structure:
@@ -94,10 +96,32 @@ def get_prob(trajectories, source, target):
     presource = trajectories[source, -2]
     source = trajectories[source, -1]
     target = trajectories[target, 1]
-    linear = pdvdt(presource, source, target)
-    angular = pdwdt(source, target)
+    linear = linear_prob(presource, source, target)
+    angular = angular_prob(source, target)
     
     return linear * angular
+
+def linear_prob(presource, source, target)
+    tsteps = target[0] - source[0]
+    speed1 = np.linalg.norm(target[1,0] - source[1,0],
+                            target[1,1] - source[1,1])
+    speed2 = np.linalg.norm(source[1,0] - presource[1,0],
+                            source[1,1] - presource[1,1])
+    acc = (2 / tsteps**2) * (speed1 - speed2)
+    
+    prob_value = acceleration_distribution(acc) ** tsteps
+
+    return prob_value
+
+def angular_prob(presource, source, target)
+    tsteps = target[0] - source[0]
+    aacc = (2 / tsteps**2) * mod(-math.arctan(target[1,0] - source[1,0],
+                                              target[1,1] - source[1,1])
+                                        - presource[2] + math.pi)
+    prob_value = angular_acceleration_distribution(aacc) ** tsteps
+
+    return prob_value
+
 
 def link(trajectories):
     frames = trajectories[:,0]
