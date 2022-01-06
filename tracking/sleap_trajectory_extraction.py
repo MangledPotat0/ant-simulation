@@ -25,35 +25,42 @@ import kde
 import math
 import numpy as np
 
-#   Input data structure:
-#     FILE (.h5)
-#       -
-#       -
-#       -
-#       -
-#       -
-#       -
-#       -
+#   DATA HIERARCHY
 
-#   Output data structure:
+#   INPUT DATA:
+#     FILE (.h5)
+#       > node_names            (1 x 3 dset)
+#         >NODE_NAME            (string)
+#       > track_names           (1 x N dset)
+#         > TRACK_NAME          (string)
+#       > track_occupancy       (T x N dset)
+#         > TRACK_OCCUPANCY     (boolean)
+#       > tracks                (N x 2 x 3 x T dset)
+#         > trajectory          (2 x 3 x T array)
+#           > x coordinates     (3 x T array)
+#             > NODES positions (1 x T array)
+#               > xval          (float)
+#           > y coordinates     (3 x T array)
+#             > NODES positions (1 x T array)
+#               > yval          (float)
+
+#   OUTPUT DATA:
 #     FILE (.hdf5)
 #       > trajectory            (1 x N HDF5 dataset)
-#         > frame               (1 x 2 list)
+#         > frame               (1 x 2 array)
 #           > frame number      (int)
-#           > position          (1 x 2 list)
+#           > position          (1 x 2 array)
 #             > x coordinate    (float)
 #             > y coordinate    (float)
 
 
+########## Load and prepare data for postprocessing ##########
+
+# INCOMPLETE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
 def prepare(trajectories):
 # Convert data format from frame-by-frame structure to trajectory-by-trajectory
 # format. Also add orientation to the data
-
-    return
-
-def simplelink(trajectories):
-# Perform a conservative simple linking based on proximity and orientation,
-# just to have some trajectory fragments to get started.
 
     return
 
@@ -74,6 +81,18 @@ def oriAnt2(pos1, pos2):
     direction = pos2 - pos1
 
     return math.arctan(direction[0], direction[1])
+
+
+########## Cut up all the jumps in the trajectory ##########
+
+# INCOMPLETE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+
+
+########## Re-link trajectories using probability-based cost function ##########
+
+# INCOMPLETE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
 def build_graph(trajectories, sources, targets:
 # Build a graph mapping between source trajectories and target trajectories
@@ -151,11 +170,19 @@ def link(trajectories):
     # Join trajectories and remove redundancies
     sourceremove = []
     targetremove = []
+
+
+########## Formatting and exporting the output ##########
         
 
 def outputformat(trajectories):
     
     return
+
+# INCOMPLETE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+
+
+########## Main loop for launching processes ##########
 
 def run():
 
