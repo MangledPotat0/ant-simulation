@@ -58,11 +58,26 @@ import numpy as np
 
 # INCOMPLETE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-def prepare(trajectories):
-# Convert data format from frame-by-frame structure to trajectory-by-trajectory
-# format. Also add orientation to the data
+def prepare(inputfile):
+# Convert data format and add orientation to the data
+    trajectories = inputfile['tracks']
+    occupancy = inputfile['track_occupancy']
+    converted = []
 
-    return
+# Make a new list that contains trajectories
+# Each entry of trajectory is [framenumber, coordinates, orientation]
+    for trajectory in range(len(trajectories)):
+        converted.append([])
+        for frame in range(len(occupancy)):
+            if occupancy[frame, trajectory]:
+                if orientable:
+                    orientation = find_orientation()
+
+                converted[trajectory].append([frame,
+                                              tracks[trajectory,:,:,frame],
+                                              orientation])
+    
+    return converted
 
 def oriAnt(position, weights):
 # Finding orientation using relative positions of body segments
