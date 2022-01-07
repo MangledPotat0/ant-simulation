@@ -5,30 +5,32 @@
 #                                                                              #
 #   Version 1.0.0.0.0.0                                                        #
 #   First written on: 2020/08/27                                               #
-#   Last modified: 2020/08/27                                                  #
+#   Last modified: 2022/01/06                                                  #
 #                                                                              #
 #   Packages used:                                                             #
 #                                                                              #
 ################################################################################
 
 import numpy as np
+import math
 from matplotlib import pyplot as plt
 
 def kde(random_variable, resolution):
     h = bandwidth()
     n = len(random_variable)
-    start = min(random_variable)
-    end = max(random_variable)
-
-    abcissa = np.linspace(start, end, resolution)
-    ordinate = np.linspace(start, end, resolution)
+    rv = np.around(random_variable, int(math.log(1 / resolution, 10)))
+    print(rv)
+    start = min(rv)
+    end = max(rv)
+    bincount = int((end - start) / resolution)
+    abcissa = np.linspace(start, end, bincount + 1)
+    ordinate = np.linspace(start, end, bincount + 1)
     integ = 0
-    res = (end-start)/resolution
 
     for i in range(len(abcissa)):
-        ker = kernel((abcissa[i]-random_variable)/h,'gaussian')
+        ker = kernel((abcissa[i]-rv)/h,'gaussian')
         ordinate[i] = 1/(n * h) * sum(ker)
-        integ += ordinate[i] * res
+        integ += ordinate[i] * resolution
 
     print(integ)
 
@@ -44,3 +46,4 @@ def kernel(argument, kernel_type):
 
     return output
 
+# EOF
