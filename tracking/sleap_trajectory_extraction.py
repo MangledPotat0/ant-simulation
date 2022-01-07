@@ -5,7 +5,7 @@
 #                                                                              #
 #   Version 0.9                                                                #
 #   Created: 2021/12/21                                                        #
-#   Last Modified: 2022/01/04                                                  #
+#   Last Modified: 2022/01/06                                                  #
 #                                                                              #
 #   Description:                                                               #
 #     Python version of sleap_trajectory_extraction.nb                         #
@@ -56,60 +56,79 @@ import numpy as np
 
 ########## Load and prepare data for postprocessing ##########
 
-# INCOMPLETE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# TEST AND DEBUG THIS BLOCK
 
 def prepare(inputfile):
 # Convert data format and add orientation to the data
     trajectories = inputfile['tracks']
     occupancy = inputfile['track_occupancy']
     converted = []
+    w = [0.7, 0.3] # Weights for orientation calculation
 
 # Make a new list that contains trajectories
 # Each entry of trajectory is [framenumber, coordinates, orientation]
     for trajectory in range(len(trajectories)):
         converted.append([])
         for frame in range(len(occupancy)):
-            if occupancy[frame, trajectory]:
-                if orientable:
-                    orientation = find_orientation()
-
-                converted[trajectory].append([frame,
-                                              tracks[trajectory,:,:,frame],
-                                              orientation])
+            if occupancy[frame, :, : trajectory]:
+                current = trajectories[trajectory, frame]
+                orientation = oriAnt(current, w)
+                if not(np.isnan(orientation)):
+                    converted[trajectory].append([frame,
+                                                  current,
+                                                  orientation])
     
-    return converted
+    return np.array(converted)
 
-def oriAnt(position, weights):
+def find_orientation(positions, weights):
 # Finding orientation using relative positions of body segments
-
-    head = position[0]
-    thorax = position[1]
-    abdomen = position[2]
     
+    parts = [part for part in positions if not np.isnan(np.sum(part))]
+    if len(parts == 3):
+        head = position[0]
+        thorax = position[1]
+        abdomen = position[2]
+        dir1 = head - thorax
+        dir2 = thorax - abdomen
+        angle1 = math.arctan(dir1[0], dir1[1])
+        angle2 = math.arctan(dir2[0], dir2[1])
+
 # Taking a weighed sum in case simple average isn't good
-    direction = weights[0] * (head - thorax) + weights[1] * (thorax - abdomen)
+        return weight[0] * angle1 + weight[1] * angle2
 
-    return math.arctan(direction[0], direction[1])
+    elif len(parts == 2):
+        direction = parts[0] - parts[1]
 
-# If body segments are unavailable, use avg positions over two frames
-def oriAnt2(pos1, pos2):
-    direction = pos2 - pos1
+        return math.arctan(diection[0], direction[1])
 
-    return math.arctan(direction[0], direction[1])
+    elif len(parts == 1):
+
+        return np.nan
 
 
 ########## Cut up all the jumps in the trajectory ##########
 
-# INCOMPLETE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# Test and debug this block
 
-
+def cut_trajectories(trajectories, threshold):
+    newtrajectories = []
+    for trajectory in trajectories:
+        jump = 0
+        for t in range(1, len(trajectory)):
+# When there is jump, cut and append the pice to the new list
+            if np.nanmean(norm(trajectory[t] - trajectory[t-1])) > threshold:
+                newtrajectories.append(trajectory[jump:t])
+                jump = t
+# Append the leftover at the end, and also single point trajectories
+            if t == len(trajectory):
+                newtrajectories.append(trajectories[jump:t + 1])
 
 
 ########## Re-link trajectories using probability-based cost function ##########
 
 # INCOMPLETE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
 
-def build_graph(trajectories, sources, targets:
+def build_graph(trajectories, sources, targets):
 # Build a graph mapping between source trajectories and target trajectories
 # sources : list of trajectory numbers for sources
 # targets: list of trajectory numbers for targets
@@ -156,6 +175,13 @@ def angular_prob(presource, source, target)
 
     return prob_value
 
+def acceleration_distribution(acc):
+
+    return probability
+
+def angular_acceleration_distribution(aacc):
+
+    return probability
 
 def link(trajectories):
     frames = trajectories[:,0]
