@@ -126,7 +126,7 @@ def cut_trajectories(trajectories, threshold):
 
 ########## Re-link trajectories using probability-based cost function ##########
 
-# INCOMPLETE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+# Test and debug this block
 
 def build_graph(trajectories, sources, targets):
 # Build a graph mapping between source trajectories and target trajectories
@@ -136,8 +136,8 @@ def build_graph(trajectories, sources, targets):
     graph = {}
     for source in sources:
         for target in targets:
-            graph.append([sources, targets, get_prob(trajectories,
-                                                     source, target)])
+            graph.append([sources, targets,
+                          get_prob(trajectories, source, target)])
 
     return np.array(graph)
 
@@ -197,7 +197,7 @@ def link(trajectories):
         
             # Add target candidates
             if trajectories[n,1,1] == t + 1:
-                targets.append()
+                targets.append(n)
 
     if min([len(sources), len(targets)]) > 0:
         # Perform Linear-Sum Assignment on the candidate pairs
@@ -205,22 +205,42 @@ def link(trajectories):
         assign = hungarian(graph)
 
         # Check for input-output size mismatch
-        if max[len(sources), len(targets)]) - len(assign) != 0:
-            print(t)
+        assert max[len(sources), len(targets)] == len(assign), "the output size does not match the input size"
     
     # Join trajectories and remove redundancies
     sourceremove = []
     targetremove = []
 
+    for [s, t] in assign:
+        try:
+            assignment = [sources[s], targets[t], graph[s, t]]
+        except IndexError:
+            proceed = False
+        if proceed:
+            sourceremove.append(sources[s])
+            targetremove.append(targets[t])
+            trajectories[sources[s]] = [*trajectories[sources[s]], 
+                                        *trajectories[targets[t]]]
+            del trajectories[target[t]]
+    if len(sourceremove) > 0:
+        sources = [s for s in sources if s not in *sourceremove]
+    if len(targetremove) > 0:
+        targets = [t for t in targets if t not in *targetremove]
+
 
 ########## Formatting and exporting the output ##########
         
+# I don't think reformatting is necessary? Run the code and see what
+# the output ends up looking like
 
 def outputformat(trajectories):
     
-    return
+    return trajectories
 
-# INCOMPLETE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+def export(trajectories):
+    h5py.File('{}_proc.hdf5'.format(arg['file'], dset = trajectories, 'w'))
+
+    return
 
 
 ########## Main loop for launching processes ##########
@@ -243,3 +263,6 @@ def run():
 if __name__=="__main__":
     run()
     #do stuff
+
+
+# EOF
