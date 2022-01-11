@@ -205,7 +205,8 @@ def link(trajectories):
         assign = hungarian(graph)
 
         # Check for input-output size mismatch
-        assert max[len(sources), len(targets)] == len(assign), "the output size does not match the input size"
+        mismatch = max[len(sources), len(targets)] - len(assign)
+        assert dim = 0, "the output size does not match the input size"
     
     # Join trajectories and remove redundancies
     sourceremove = []
