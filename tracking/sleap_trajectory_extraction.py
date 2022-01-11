@@ -245,8 +245,8 @@ def export(trajectories):
 
 ########## Main loop for launching processes ##########
 
-def run():
 
+if __name__=="__main__":
     ap = argparse.ArgumentParser()
 
     ap.add_argument('-f', '--file', type = str, required = True,
@@ -255,14 +255,6 @@ def run():
     trajectories = prepare(arg['file'])
     trajectories = prune(trajectories)
     trajectories = link(trajectories)
-
-    return
-
-
-
-if __name__=="__main__":
-    run()
-    #do stuff
 
 
 # EOF
