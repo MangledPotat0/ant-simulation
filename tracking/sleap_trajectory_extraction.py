@@ -5,7 +5,7 @@
 #                                                                              #
 #   Version 0.9                                                                #
 #   Created: 2021/12/21                                                        #
-#   Last Modified: 2022/01/06                                                  #
+#   Last Modified: 2022/01/11                                                  #
 #                                                                              #
 #   Description:                                                               #
 #     Python version of sleap_trajectory_extraction.nb                         #
@@ -72,7 +72,7 @@ def prepare(inputfile):
         for frame in range(len(occupancy)):
             if occupancy[frame, :, : trajectory]:
                 current = trajectories[trajectory, frame]
-                orientation = oriAnt(current, w)
+                orientation = find_orientation(current, w)
                 if not(np.isnan(orientation)):
                     converted[trajectory].append([frame,
                                                   current,
@@ -183,7 +183,7 @@ def angular_acceleration_distribution(aacc):
 
     return probability
 
-def link(trajectories):
+def link_trajectories(trajectories):
     frames = trajectories[:,0]
     for t in range(max(frames)):
         assign = []
@@ -239,6 +239,8 @@ def outputformat(trajectories):
     return trajectories
 
 def export(trajectories):
+
+    trajectories = outputformat(trajectories)
     h5py.File('{}_proc.hdf5'.format(arg['file'], dset = trajectories, 'w'))
 
     return
@@ -252,10 +254,15 @@ if __name__=="__main__":
 
     ap.add_argument('-f', '--file', type = str, required = True,
                     help = 'File name without extension')
+    ap.add_Argument('-s', '--skip', type = bool, required = True,
+                    help = 'Skip trajectory re-stitching?')
     args = vars(ap.parse_args())
     trajectories = prepare(arg['file'])
-    trajectories = prune(trajectories)
-    trajectories = link(trajectories)
+    if not arg['skip']:
+        trajectories = cut_trajectories(trajectories)
+        trajectories = link_trajectories(trajectories)
+
+    export(trajectories)
 
 
 # EOF
