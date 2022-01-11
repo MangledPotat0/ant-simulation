@@ -16,21 +16,21 @@ def get_difference(trajectory):
     # Set the value to actual frames
     difference[:,0] = frames
 
-    return difference
+    return np.array(difference)
 
 def get_acceleration(frames, velocity):
     before = velocity[:-1]
     after = velocity[1:]
-    acceleration = (after - before) / frames
+    acceleration = np.linalg.norm(after - before, axis = 1) / frames
     
-    return acceleration
+    return np.array(acceleration)
 
 def get_angular_acceleration(frames, angular_velocity):
     before = angular_velocity[:-1]
     after = angular_velocity[1:]
     angular_acceleration = mod((after - before) / frames, 2 * math.pi)
 
-    return angular_acceleration
+    return np.array(angular_acceleration)
 
 if __name__ == '__main__':
     
