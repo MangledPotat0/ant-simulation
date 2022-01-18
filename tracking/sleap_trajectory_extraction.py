@@ -176,10 +176,24 @@ def angular_prob(presource, source, target)
     return prob_value
 
 def acceleration_distribution(acc):
+    dset = h5py.File('acceleration.hdf5', 'r')
+    for hist in dset:
+        try:
+            arr_index = np.asarray(hist[0] == acc).nonzero()[0][0]
+            probability = hist[1,arr_index]
+        except IndexError:
+            probability = 0
 
     return probability
 
 def angular_acceleration_distribution(aacc):
+    dset = h5py.File('angular_acceleration.hdf5', 'r')
+    for hist in dset:
+        try:
+            arr_index = np.asarray(hist[0] == acc).nonzero()[0][0]
+            probability = hist[1,arr_index]
+        except IndexError:
+            probability = 0
 
     return probability
 
