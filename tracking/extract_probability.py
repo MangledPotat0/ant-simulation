@@ -55,9 +55,9 @@ if __name__ == '__main__':
     angular_acceleraiton_distribution = kde.kde(angular_acceleration,
                                                 resolution)
 
-    acceleration_file = h5py.File('Acceleration.hdf5', 'w'
+    acceleration_file = h5py.File('acceleration.hdf5', 'w'
                                   dset = acceleration_distribution)
-    angular_acceleration_file = h5py.File('Angular_acceleration.hdf5', 'w',
+    angular_acceleration_file = h5py.File('angular_acceleration.hdf5', 'w',
                                   dset = angular_acceleration_distribution)
 
 
