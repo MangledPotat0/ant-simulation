@@ -20,10 +20,11 @@
 
 import argparse
 import h5py
-from hungarian_algorithm import algorithm as hungarian
 import kde
 import math
 import numpy as np
+import os
+import scipy
 
 #   DATA HIERARCHY
 
@@ -53,13 +54,16 @@ import numpy as np
 #             > x coordinate    (float)
 #             > y coordinate    (float)
 
+cwd = os.path.dirname(os.path.realpath(__file__))
+datapath = "../../data/trajectories/"
 
 ########## Load and prepare data for postprocessing ##########
 
 # TEST AND DEBUG THIS BLOCK
 
-def prepare(inputfile):
+def prepare(datapath, inputfilename):
 # Convert data format and add orientation to the data
+    inputfile = h5py.File('{}{}data.h5'.format(datapath, inputfilename))
     trajectories = inputfile['tracks']
     occupancy = inputfile['track_occupancy']
     converted = []
@@ -70,38 +74,37 @@ def prepare(inputfile):
     for trajectory in range(len(trajectories)):
         converted.append([])
         for frame in range(len(occupancy)):
-            if occupancy[frame, :, : trajectory]:
-                current = trajectories[trajectory, frame]
+            if occupancy[frame, trajectory]:
+                current = trajectories[trajectory,:,:, frame].transpose()
                 orientation = find_orientation(current, w)
                 if not(np.isnan(orientation)):
-                    converted[trajectory].append([frame,
-                                                  current,
-                                                  orientation])
-    
-    return np.array(converted)
+                    entry = np.append([[frame, orientation]], current, axis=0)
+                    converted[trajectory].append(entry)
+        converted[trajectory] = np.array(converted[trajectory])
+    return converted
 
 def find_orientation(positions, weights):
 # Finding orientation using relative positions of body segments
     
     parts = [part for part in positions if not np.isnan(np.sum(part))]
-    if len(parts == 3):
-        head = position[0]
-        thorax = position[1]
-        abdomen = position[2]
+    if len(parts) == 3:
+        head = parts[0]
+        thorax = parts[1]
+        abdomen = parts[2]
         dir1 = head - thorax
         dir2 = thorax - abdomen
-        angle1 = math.arctan(dir1[0], dir1[1])
-        angle2 = math.arctan(dir2[0], dir2[1])
+        angle1 = math.atan2(dir1[1], dir1[0])
+        angle2 = math.atan2(dir2[1], dir2[0])
 
 # Taking a weighed sum in case simple average isn't good
-        return weight[0] * angle1 + weight[1] * angle2
+        return weights[0] * angle1 + weights[1] * angle2
 
-    elif len(parts == 2):
+    elif len(parts) == 2:
         direction = parts[0] - parts[1]
 
-        return math.arctan(diection[0], direction[1])
+        return math.atan2(direction[1], direction[0])
 
-    elif len(parts == 1):
+    elif len(parts) == 1:
 
         return np.nan
 
@@ -116,14 +119,15 @@ def cut_trajectories(trajectories, threshold):
         jump = 0
         for t in range(1, len(trajectory)):
 # When there is jump, cut and append the pice to the new list
-            if np.nanmean(norm(trajectory[t] - trajectory[t-1])) > threshold:
+            jumpsize = np.linalg.norm(trajectory[t][:] - trajectory[t-1][:])
+            if np.nanmean(jumpsize) > threshold:
                 newtrajectories.append(trajectory[jump:t])
                 jump = t
 # Append the leftover at the end, and also single point trajectories
             if t == len(trajectory):
                 newtrajectories.append(trajectories[jump:t + 1])
 
-
+    return newtrajectories
 ########## Re-link trajectories using probability-based cost function ##########
 
 # Test and debug this block
@@ -133,11 +137,12 @@ def build_graph(trajectories, sources, targets):
 # sources : list of trajectory numbers for sources
 # targets: list of trajectory numbers for targets
 
-    graph = {}
+    graph = []
     for source in sources:
+        row = []
         for target in targets:
-            graph.append([sources, targets,
-                          get_prob(trajectories, source, target)])
+            row.append(get_prob(trajectories, source, target)) 
+        graph.append(row)
 
     return np.array(graph)
 
@@ -146,27 +151,27 @@ def get_prob(trajectories, source, target):
 # trajectories: all trajectories
 # source : trajectory number for source
 # target : trajectory number for target
-    presource = trajectories[source, -2]
-    source = trajectories[source, -1]
-    target = trajectories[target, 1]
+    presource = trajectories[source][-2]
+    source = trajectories[source][-1]
+    target = trajectories[target][0]
     linear = linear_prob(presource, source, target)
     angular = angular_prob(source, target)
     
     return linear * angular
 
-def linear_prob(presource, source, target)
+def linear_prob(presource, source, target):
     tsteps = target[0] - source[0]
-    speed1 = np.linalg.norm(target[1,0] - source[1,0],
-                            target[1,1] - source[1,1])
-    speed2 = np.linalg.norm(source[1,0] - presource[1,0],
-                            source[1,1] - presource[1,1])
+    speed1 = np.linalg.norm([target[1,0] - source[1,0],
+                            target[1,1] - source[1,1]])
+    speed2 = np.linalg.norm([source[1,0] - presource[1,0],
+                            source[1,1] - presource[1,1]])
     acc = (2 / tsteps**2) * (speed1 - speed2)
     
     prob_value = acceleration_distribution(acc) ** tsteps
 
     return prob_value
 
-def angular_prob(presource, source, target)
+def angular_prob(presource, source, target):
     tsteps = target[0] - source[0]
     aacc = (2 / tsteps**2) * mod(-math.arctan(target[1,0] - source[1,0],
                                               target[1,1] - source[1,1])
@@ -197,50 +202,52 @@ def angular_acceleration_distribution(aacc):
 
     return probability
 
-def link_trajectories(trajectories):
-    frames = trajectories[:,0]
-    for t in range(max(frames)):
+def link_trajectories(timerange, trajectories):
+    frames = range(timerange)
+    for t in frames:
         assign = []
         sources = []
         targets = []
         for n in range(len(trajectories)):
         # Add source candidates
-            if trajectories[n,-1,1] == t:
-                if len(trajectories[n]) > 1,
+            if trajectories[n][-1,0,0] == t:
+                if len(trajectories[n]) > 1:
                     sources.append(n)
         
             # Add target candidates
-            if trajectories[n,1,1] == t + 1:
+            if trajectories[n][0,0,0] == t + 1:
                 targets.append(n)
 
-    if min([len(sources), len(targets)]) > 0:
-        # Perform Linear-Sum Assignment on the candidate pairs
-        graph = build_graph(trajectories, sources, targets)
-        assign = hungarian(graph)
+        if min([len(sources), len(targets)]) > 0:
+            # Perform Linear-Sum Assignment on the candidate pairs
+            graph = build_graph(trajectories, sources, targets)
+            assign = scipy.optimize.linear_sum_assignment(graph, maximize=True)
 
-        # Check for input-output size mismatch
-        mismatch = max[len(sources), len(targets)] - len(assign)
-        assert dim = 0, "the output size does not match the input size"
+            # Check for input-output size mismatch
+            mismatch = max[len(sources), len(targets)] - len(assign)
+            assert dim == 0, "the output size does not match the input size"
     
-    # Join trajectories and remove redundancies
-    sourceremove = []
-    targetremove = []
+        # Join trajectories and remove redundancies
+        sourceremove = []
+        targetremove = []
 
-    for [s, t] in assign:
-        try:
-            assignment = [sources[s], targets[t], graph[s, t]]
-        except IndexError:
-            proceed = False
-        if proceed:
-            sourceremove.append(sources[s])
-            targetremove.append(targets[t])
-            trajectories[sources[s]] = [*trajectories[sources[s]], 
+        for [s, t] in assign:
+            try:
+                assignment = [sources[s], targets[t], graph[s, t]]
+            except IndexError:
+                proceed = False
+            if proceed:
+                sourceremove.append(sources[s])
+                targetremove.append(targets[t])
+                trajectories[sources[s]] = [*trajectories[sources[s]], 
                                         *trajectories[targets[t]]]
-            del trajectories[target[t]]
-    if len(sourceremove) > 0:
-        sources = [s for s in sources if s not in *sourceremove]
-    if len(targetremove) > 0:
-        targets = [t for t in targets if t not in *targetremove]
+                del trajectories[target[t]]
+        if len(sourceremove) > 0:
+            sources = [s for s in sources if s not in sourceremove]
+        if len(targetremove) > 0:
+            targets = [t for t in targets if t not in targetremove]
+
+    return trajectories
 
 
 ########## Formatting and exporting the output ##########
@@ -255,7 +262,12 @@ def outputformat(trajectories):
 def export(trajectories):
 
     trajectories = outputformat(trajectories)
-    h5py.File('{}_proc.hdf5'.format(arg['file'], dset = trajectories, 'w'))
+    dfile = h5py.File('{}_proc.hdf5'.format(args['file']), 'w')
+    ct = 0
+    for trajectory in trajectories:
+        dfile.create_dataset('trajectory{}'.format(ct),
+                             data = trajectory)
+        ct += 1
 
     return
 
@@ -268,13 +280,18 @@ if __name__=="__main__":
 
     ap.add_argument('-f', '--file', type = str, required = True,
                     help = 'File name without extension')
-    ap.add_Argument('-s', '--skip', type = bool, required = True,
+    ap.add_argument('-s', '--skip', type = int, required = True,
                     help = 'Skip trajectory re-stitching?')
     args = vars(ap.parse_args())
-    trajectories = prepare(arg['file'])
-    if not arg['skip']:
-        trajectories = cut_trajectories(trajectories)
-        trajectories = link_trajectories(trajectories)
+    trajectories = prepare(datapath, args['file'])
+    
+    if not args['skip']:
+        threshold = 15.1 # HARDCODED VALUE; FIX THIS LATER
+        frames = 600
+        trajectories = cut_trajectories(trajectories, threshold)
+        print('pre-link length: ',len(trajectories))
+        trajectories = link_trajectories(frames, trajectories)
+        print('post-link length: ',len(trajectories))
 
     export(trajectories)
 
