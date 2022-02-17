@@ -24,7 +24,6 @@ import numpy as np
 import os
 import random as rand
 import sys
-import trackpy as tp
 
 # Create an argument parser object
 
@@ -55,7 +54,7 @@ except OSError:
     print('Failed to create new directory')
 
 vidpath = '../../data/videos/'
-trajpath = '../../data/sleap/'
+trajpath = '../../data/trajectories/'
 
 video = cv.VideoCapture('{}{}.mp4'.format(vidpath,vidname))
 trajfile = h5py.File('{}{}.hdf5'.format(trajpath,args['file']),'r')
