@@ -61,7 +61,7 @@ while run:
         cv.imshow('cropped',cropped)
         cv.waitKey()
         xcrops = int(input('Enter the left-crop value: '))
-        assert xcrops.isnumeric(), 'Crop amount must be numerical'
+        assert type(xcrops) == int, 'Crop amount must be numerical'
         if xcrops < 0:
             cropped = frame;
         elif xcrops == 0:
@@ -75,7 +75,7 @@ while run:
         cv.imshow('cropped', cropped)
         cv.waitKey()
         xcrops = int(input('Enter the right-crop value: '))
-        assert xcrops.isnumeric(), 'Crop amount must be numerical'
+        assert type(xcrops) == int, 'Crop amount must be numerical'
         if xcrops < 0:
             cropped = frame;
         elif xcrops == 0:
@@ -89,7 +89,7 @@ while run:
         cv.imshow('cropped',cropped)
         cv.waitKey()
         ycrops = int(input('Enter the top-crop value: '))
-        assert xcrops.isnumeric(), 'Crop amount must be numerical'
+        assert type(xcrops) == int, 'Crop amount must be numerical'
         if ycrops < 0:
             cropped = frame;
         elif ycrops == 0:
@@ -103,7 +103,7 @@ while run:
         cv.imshow('cropped',cropped)
         cv.waitKey()
         ycrops = int(input('Enter the bottom-crop value: '))
-        assert xcrops.isnumeric(), 'Crop amount must be numerical'
+        assert type(xcrops) == int, 'Crop amount must be numerical'
         if ycrops < 0:
             cropped = frame;
         elif ycrops == 0:
