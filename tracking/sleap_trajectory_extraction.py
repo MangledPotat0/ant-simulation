@@ -262,7 +262,7 @@ def outputformat(trajectories):
 def export(trajectories):
 
     trajectories = outputformat(trajectories)
-    dfile = h5py.File('{}_proc.hdf5'.format(args['file']), 'w')
+    dfile = h5py.File('{}{}_proc.hdf5'.format(datapath,args['file']), 'w')
     ct = 0
     for trajectory in trajectories:
         dfile.create_dataset('trajectory{}'.format(ct),
