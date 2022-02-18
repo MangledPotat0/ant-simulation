@@ -104,6 +104,7 @@ while success:
     for keys in trajectories:
         try:
             traj = trajectories[keys]
+            print(traj)
             coords = tuple(traj[:,0,ct])
             frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
                               radius, color[keys], thickness)
