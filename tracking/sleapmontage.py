@@ -64,7 +64,7 @@ for key in trajfile:
     trajectories[key] = trajfile[key]
 
 offset = 1
-length = 500
+length = 27030
 ct = 0
 while ct < offset:
     success, frame = video.read()
@@ -74,7 +74,7 @@ thickness = 2
 color = {}
 
 plotstack = []
-ct = 0
+
 try:
     os.makedirs('{}{}{}'.format(self.outpath,
                                 self.fileid, 
@@ -86,34 +86,35 @@ except:
 h = frame.shape[0]
 w = frame.shape[1]
 
-fps = 25.0
+fps = 15.0
 fourcc = cv.VideoWriter_fourcc(*'mp4v')
 api = cv.CAP_ANY
-out = cv.VideoWriter('./file.mp4',
+out = cv.VideoWriter('{}/{}.mp4'.format(montpath,vidname),
                     apiPreference = api,
                     fourcc = fourcc,
                     fps = float(fps),
                     frameSize = (w, h),
                     isColor = True)
-for keys in trajectories:
-    color[keys] = (rand.randint(0,255), # B
+for key in trajectories:
+    color[key] = (rand.randint(0,255), # B
                    rand.randint(0,255), # G
                    rand.randint(0,255)) # R
 
+ct = 0
 while success:
-    for keys in trajectories:
+    for key in trajectories:
         try:
-            traj = trajectories[keys]
-            print(traj)
-            coords = tuple(traj[:,0,ct])
-            frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
-                              radius, color[keys], thickness)
-            coords = tuple(traj[:,1,ct])
-            frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
-                              radius, color[keys], thickness)
-            coords = tuple(traj[:,2,ct])
-            frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
-                              radius, color[keys], thickness)
+            traj = trajectories[key]
+            if ct == traj[ct,0,0]:
+                coords = traj[ct,1]
+                frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
+                                  radius, color[key], thickness)
+                coords = traj[ct,2]
+                frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
+                                  radius, color[key], thickness)
+                coords = traj[ct,3]
+                frame = cv.circle(frame, (int(coords[0]),int(coords[1])), 
+                                  radius, color[key], thickness)
         except IndexError:
             print('foo')
             pass
