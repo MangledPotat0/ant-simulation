@@ -90,54 +90,71 @@ class lattice_ant_model:
     
    
     # Getter methods
+    @property
     def boundarycondition(self):
         return self.boundarycondition_
 
+    @property
     def selectionmethod(self):
         return self.selectionmethod_
 
+    @property
     def enable_wallinteraction(self):
         return self.enable_wallinteraction_
 
+    @property
     def wallstrength(self):
         return self.wallstrength_
 
+    @property
     def tsteps(self):
         return self.tsteps_
 
+    @property
     def montagestep(self):
         return self.montagestep_
 
+    @property
     def latticesize(self):
         return self.latticesize_
 
+    @property
     def nspecies(self):
         return self.nspecies_
 
+    @property
     def mcount(self):
         return self.mcount_
 
+    @property
     def interaction(self):
         return self.interaction_
 
+    @property
     def lengthscale(self):
         return self.lengthscale_
 
+    @property
     def packinglimit(self):
         return self.packinglimit_
 
+    @property
     def threshold(self):
         return self.threshold_
 
+    @property
     def energyscale(self):
         return self.energyscale_
 
+    @property
     def temperature(self):
         return self.temperature_
 
+    @property
     def tt(self):
         return self.tt_
 
+    @property
     def makemontage(self):
         return self.makemontage_
 
